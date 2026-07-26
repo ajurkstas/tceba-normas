@@ -58,6 +58,7 @@
     margin:0 0 8px;
     letter-spacing:-0.01em;
   }
+  h1 img{display:block;max-width:100%;max-height:64px;}
   .lede{color:var(--slate-500);font-size:14.5px;line-height:1.55;max-width:62ch;margin:0;}
 
   nav.tabs{display:flex;gap:2px;margin-top:24px;}
@@ -238,16 +239,16 @@
 
   <header class="top">
     <div class="eyebrow">Acervo normativo · TCE/BA</div>
-    <h1>Consulta às Normas do TCE/BA</h1>
+    <h1><img id="logo-titulo" src="logo-titulo.png" alt="Consulta às Normas do TCE/BA" onerror="this.replaceWith(document.createTextNode('Consulta às Normas do TCE/BA'))"></h1>
     <p class="lede">Respostas fundamentadas exclusivamente nas normas carregadas no acervo abaixo. Sem regulamentação correspondente, a ferramenta declara a ausência, sem completar a lacuna.</p>
     <nav class="tabs">
-      <button id="tab-acervo" class="active" onclick="mudarView('acervo')">Acervo</button>
-      <button id="tab-consulta" onclick="mudarView('consulta')">Consulta</button>
+      <button id="tab-consulta" class="active" onclick="mudarView('consulta')">Consulta</button>
+      <button id="tab-acervo" onclick="mudarView('acervo')">Acervo</button>
     </nav>
   </header>
 
   <!-- ACERVO -->
-  <section id="view-acervo" class="view active">
+  <section id="view-acervo" class="view">
     <div class="acervo-toolbar">
       <input type="search" id="busca" placeholder="Filtrar por tipo, número, ementa ou palavra do texto" oninput="renderLista()">
       <button class="btn" onclick="abrirModal()">+ Nova norma</button>
@@ -256,6 +257,7 @@
       <button class="btn ghost" onclick="mudarView('lote')">Colagem em lote</button>
       <input type="file" id="input-import" accept="application/json" style="display:none" onchange="importarJSON(event)">
     </div>
+    <span class="contagem" id="acervo-contagem" style="display:block;margin-bottom:14px"></span>
     <div id="lista-acervo" class="grid"></div>
   </section>
 
@@ -287,14 +289,13 @@ Número: 03/2024
   </section>
 
   <!-- CONSULTA -->
-  <section id="view-consulta" class="view">
+  <section id="view-consulta" class="view active">
     <div class="pergunta-box">
       <div class="field">
         <label for="pergunta">Pergunta</label>
-        <textarea class="pergunta" id="pergunta" placeholder="Ex.: qual o prazo para apresentação de defesa em processo de denúncia perante o TCE/BA?"></textarea>
+        <textarea class="pergunta" id="pergunta" placeholder="Ex.: qual o prazo para interposição de Recurso de Apelação pera o TCE/BA?"></textarea>
       </div>
       <div class="consulta-actions">
-        <span class="contagem" id="acervo-contagem"></span>
         <button class="btn" id="btn-consultar" onclick="consultar()">Consultar</button>
       </div>
     </div>
