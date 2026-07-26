@@ -425,30 +425,46 @@ const ABREV = {
 function uid(){ return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
 /* ======================= Persistência =======================
-   O acervo "publicado" (acervo.json) é o mesmo para qualquer pessoa que
-   acesse o site — é o arquivo do repositório, atualizado por quem
-   administra o site. Alterações feitas na aba Acervo ficam guardadas
-   apenas neste navegador (localStorage) até serem publicadas: são um
-   rascunho local, não algo que os demais visitantes já veem.
+   Dois ambientes possíveis:
+   - Dentro do Claude.ai (artefato): existe window.storage, próprio do
+     artefato, e é usado diretamente — sem conceito de "publicar".
+   - Fora do Claude.ai (site em servidor próprio): window.storage não
+     existe. O acervo "publicado" (acervo.json) é o arquivo do
+     repositório, igual para qualquer visitante. Alterações na aba
+     Acervo ficam guardadas apenas neste navegador (localStorage) até
+     serem publicadas — um rascunho local, não algo que os demais
+     visitantes já veem.
 ================================================================= */
+const DENTRO_DO_CLAUDE = (typeof window.storage !== 'undefined');
 const ARQUIVO_ACERVO_PUBLICADO = 'acervo.json';
 let acervoEhRascunhoLocal = false;
 
 async function carregarEstado(){
-  try{
-    const local = localStorage.getItem(CHAVE_NORMAS);
-    if(local){
-      NORMAS = JSON.parse(local);
-      acervoEhRascunhoLocal = true;
-    }else{
-      NORMAS = await carregarAcervoPublicado();
-      acervoEhRascunhoLocal = false;
-    }
-  }catch(e){ NORMAS = []; }
-  try{
-    const h = localStorage.getItem(CHAVE_HIST);
-    HISTORICO = h ? JSON.parse(h) : [];
-  }catch(e){ HISTORICO = []; }
+  if(DENTRO_DO_CLAUDE){
+    try{
+      const r = await window.storage.get(CHAVE_NORMAS, false);
+      NORMAS = r && r.value ? JSON.parse(r.value) : [];
+    }catch(e){ NORMAS = []; }
+    try{
+      const r2 = await window.storage.get(CHAVE_HIST, false);
+      HISTORICO = r2 && r2.value ? JSON.parse(r2.value) : [];
+    }catch(e){ HISTORICO = []; }
+  }else{
+    try{
+      const local = localStorage.getItem(CHAVE_NORMAS);
+      if(local){
+        NORMAS = JSON.parse(local);
+        acervoEhRascunhoLocal = true;
+      }else{
+        NORMAS = await carregarAcervoPublicado();
+        acervoEhRascunhoLocal = false;
+      }
+    }catch(e){ NORMAS = []; }
+    try{
+      const h = localStorage.getItem(CHAVE_HIST);
+      HISTORICO = h ? JSON.parse(h) : [];
+    }catch(e){ HISTORICO = []; }
+  }
   renderLista();
   renderHistorico();
   atualizarContagens();
@@ -464,11 +480,21 @@ async function carregarAcervoPublicado(){
   }catch(e){ return []; }
 }
 
-function salvarNormas(){
+async function salvarNormas(){
+  if(DENTRO_DO_CLAUDE){
+    try{ await window.storage.set(CHAVE_NORMAS, JSON.stringify(NORMAS), false); }
+    catch(e){ mostrarErroPersistencia(); }
+    return;
+  }
   try{ localStorage.setItem(CHAVE_NORMAS, JSON.stringify(NORMAS)); acervoEhRascunhoLocal = true; atualizarAvisoRascunho(); }
   catch(e){ mostrarErroPersistencia(); }
 }
-function salvarHistorico(){
+async function salvarHistorico(){
+  if(DENTRO_DO_CLAUDE){
+    try{ await window.storage.set(CHAVE_HIST, JSON.stringify(HISTORICO.slice(0,30)), false); }
+    catch(e){ /* histórico não é crítico */ }
+    return;
+  }
   try{ localStorage.setItem(CHAVE_HIST, JSON.stringify(HISTORICO.slice(0,30))); }
   catch(e){ /* histórico não é crítico */ }
 }
