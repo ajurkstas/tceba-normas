@@ -340,13 +340,13 @@ Número: 03/2024
       <div class="field">
         <label for="f-tipo">Tipo de ato</label>
         <select id="f-tipo">
+          <option>Constituição Federal</option>
+          <option>Constituição do Estado</option>
           <option>Lei Orgânica</option>
           <option>Regimento Interno</option>
           <option selected>Resolução Normativa</option>
-          <option>Instrução Normativa</option>
-          <option>Portaria Normativa</option>
-          <option>Súmula</option>
-          <option>Outro</option>
+          <option>Súmula de Jurisprudência</option>
+          <option>Legislação Correlata</option>
         </select>
       </div>
       <div class="field">
@@ -363,7 +363,8 @@ Número: 03/2024
         <label for="f-status">Situação</label>
         <select id="f-status">
           <option value="vigente" selected>Vigente</option>
-          <option value="revogada">Revogada / alterada</option>
+          <option value="vigente_alteracoes">Vigente com alterações</option>
+          <option value="revogada">Revogada</option>
         </select>
       </div>
     </div>
@@ -397,8 +398,9 @@ const CHAVE_NORMAS = 'tce-normas';
 const CHAVE_HIST = 'tce-historico';
 
 const ABREV = {
+  'Constituição Federal':'CF','Constituição do Estado':'CE',
   'Lei Orgânica':'LO','Regimento Interno':'RI','Resolução Normativa':'RN',
-  'Instrução Normativa':'IN','Portaria Normativa':'PN','Súmula':'SÚM','Outro':'AT'
+  'Súmula de Jurisprudência':'SÚM','Legislação Correlata':'LC'
 };
 
 function uid(){ return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -462,7 +464,7 @@ function renderLista(){
       const trecho = (n.texto||'').replace(/\s+/g,' ').slice(0,140);
       return `<div class="ficha">
         <span class="codigo">${escapeHtml(cod)}</span>
-        ${n.status==='revogada' ? '<span class="status-revogada" style="float:right">revogada/alterada</span>' : ''}
+        ${n.status!=='vigente' ? '<span class="status-revogada" style="float:right">'+escapeHtml(rotuloStatus(n.status))+'</span>' : ''}
         <h3>${escapeHtml(n.ementa || n.tipo)}</h3>
         <div class="meta">${escapeHtml(n.tipo)} · ${escapeHtml(n.data||'sem data')}</div>
         <div class="trecho">${escapeHtml(trecho)}${n.texto && n.texto.length>140?'…':''}</div>
@@ -475,6 +477,12 @@ function renderLista(){
 
 function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function rotuloStatus(status){
+  if(status==='revogada') return 'revogada';
+  if(status==='vigente_alteracoes') return 'vigente, com alterações';
+  return '';
 }
 
 function atualizarContagens(){
@@ -655,7 +663,7 @@ function montarCorpoAcervo(pergunta){
   }
   const corpo = selecionadas.map((n,i)=>{
     const cod = (ABREV[n.tipo]||'AT') + (n.numero? '-'+n.numero : '');
-    const statusTxt = n.status==='revogada' ? ' [REVOGADA/ALTERADA'+(n.obs? ' — '+n.obs:'')+']' : '';
+    const statusTxt = n.status && n.status!=='vigente' ? ' ['+rotuloStatus(n.status).toUpperCase()+(n.obs? ' — '+n.obs:'')+']' : '';
     return `[${i+1}] ${n.tipo} nº ${n.numero||'s/n'} (${n.data||'sem data'}) — ${cod}${statusTxt}\nEmenta: ${n.ementa||'—'}\nTexto integral:\n${n.texto}`;
   }).join('\n\n---\n\n');
   const aviso = selecionadas.length < NORMAS.length
