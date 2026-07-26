@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Consulta às Normas do TCE/BA</title>
+<meta name="description" content="Consulta ao acervo normativo do TCE/BA, com respostas fundamentadas exclusivamente nos textos carregados.">
+<meta name="theme-color" content="#12192B">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-900:#12192B;
+    --ink-700:#2B3752;
+    --paper-0:#ECEDE7;
+    --paper-100:#FFFFFF;
+    --brass-500:#A9812F;
+    --brass-100:#EFE3C8;
+    --wine-600:#7A2331;
+    --wine-100:#F3E2E1;
+    --slate-500:#5B6472;
+    --line:#D8D9D2;
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper-0);
+    color:var(--ink-900);
+    font-family:'IBM Plex Sans',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:var(--brass-100);}
+  a{color:var(--ink-700);}
+
+  .shell{max-width:920px;margin:0 auto;padding:32px 20px 96px;}
+
+  header.top{margin-bottom:28px;border-bottom:1px solid var(--line);padding-bottom:22px;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--brass-500);
+    display:flex;align-items:center;gap:10px;
+    margin-bottom:10px;
+  }
+  .eyebrow::before{content:"";display:inline-block;width:18px;height:1px;background:var(--brass-500);}
+  h1{
+    font-family:'Newsreader',serif;
+    font-weight:500;
+    font-size:clamp(26px,4vw,34px);
+    margin:0 0 8px;
+    letter-spacing:-0.01em;
+  }
+  .lede{color:var(--slate-500);font-size:14.5px;line-height:1.55;max-width:62ch;margin:0;}
+
+  nav.tabs{display:flex;gap:2px;margin-top:24px;}
+  nav.tabs button{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    background:none;border:none;
+    padding:10px 4px;margin-right:26px;
+    color:var(--slate-500);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  nav.tabs button.active{color:var(--ink-900);border-bottom-color:var(--brass-500);}
+  nav.tabs button:hover{color:var(--ink-900);}
+
+  section.view{display:none;animation:fade .25s ease;}
+  section.view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(2px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion: reduce){ section.view{animation:none;} }
+
+  /* ---------- Acervo ---------- */
+  .acervo-toolbar{display:flex;gap:10px;margin:22px 0 18px;flex-wrap:wrap;}
+  input[type=text], input[type=search], textarea, select{
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:14px;
+    color:var(--ink-900);
+    background:var(--paper-100);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:9px 11px;
+    width:100%;
+  }
+  input:focus, textarea:focus, select:focus, button:focus-visible{
+    outline:2px solid var(--brass-500);outline-offset:1px;
+  }
+  .acervo-toolbar input[type=search]{flex:1;min-width:200px;}
+
+  .btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+    background:var(--ink-900);color:var(--paper-100);
+    border:1px solid var(--ink-900);
+    border-radius:var(--radius);
+    padding:10px 16px;cursor:pointer;
+    white-space:nowrap;
+  }
+  .btn:hover{background:var(--ink-700);}
+  .btn.secondary{background:transparent;color:var(--ink-900);}
+  .btn.secondary:hover{background:var(--paper-100);}
+  .btn.ghost{background:transparent;color:var(--slate-500);border-color:var(--line);}
+  .btn.danger{background:transparent;color:var(--wine-600);border-color:var(--wine-600);}
+  .btn.small{padding:5px 9px;font-size:10.5px;}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;}
+
+  .ficha{
+    background:var(--paper-100);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px 16px 14px;
+    position:relative;
+  }
+  .ficha .codigo{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.03em;
+    background:var(--brass-100);color:#5C4718;
+    display:inline-block;padding:3px 7px;border-radius:2px;
+    margin-bottom:10px;
+  }
+  .ficha h3{
+    font-family:'Newsreader',serif;font-weight:500;
+    font-size:16.5px;margin:0 0 6px;line-height:1.3;
+  }
+  .ficha .meta{color:var(--slate-500);font-size:12px;margin-bottom:10px;}
+  .ficha .trecho{
+    font-size:13px;color:var(--ink-700);line-height:1.5;
+    max-height:3.2em;overflow:hidden;
+  }
+  .ficha .acoes{display:flex;gap:8px;margin-top:12px;}
+  .ficha .status-revogada{color:var(--wine-600);font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;}
+
+  .empty{
+    border:1px dashed var(--line);border-radius:var(--radius);
+    padding:36px 20px;text-align:center;color:var(--slate-500);font-size:14px;
+  }
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(18,25,43,.42);
+    display:none;align-items:flex-start;justify-content:center;
+    padding:40px 16px;overflow-y:auto;z-index:50;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:var(--paper-100);border-radius:var(--radius);
+    max-width:640px;width:100%;padding:28px 26px 24px;
+    border:1px solid var(--line);
+  }
+  .modal h2{font-family:'Newsreader',serif;font-weight:500;font-size:20px;margin:0 0 18px;}
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.06em;color:var(--slate-500);margin-bottom:5px;
+  }
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  textarea.texto-integral{min-height:180px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;}
+  .modal-actions{display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:10px;}
+
+  /* ---------- Consulta ---------- */
+  .pergunta-box{margin-top:22px;}
+  textarea.pergunta{min-height:88px;font-size:15px;line-height:1.5;}
+  .consulta-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px;}
+  .contagem{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--slate-500);}
+
+  .resposta{margin-top:28px;}
+  .bloco-sintese{
+    font-family:'Newsreader',serif;font-size:17px;line-height:1.6;color:var(--ink-900);
+    padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--line);
+  }
+  .bloco-sintese .rotulo{
+    display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--brass-500);margin-bottom:8px;
+  }
+  .bloco-norma{
+    background:var(--paper-100);border-left:3px solid var(--brass-500);
+    border-radius:0 var(--radius) var(--radius) 0;
+    padding:14px 18px;margin-bottom:14px;
+  }
+  .bloco-norma .fonte{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--brass-500);
+    text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;
+  }
+  .bloco-norma .texto{font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.65;white-space:pre-wrap;color:var(--ink-900);}
+  .bloco-semnorma{
+    background:var(--wine-100);border-left:3px solid var(--wine-600);
+    border-radius:0 var(--radius) var(--radius) 0;
+    padding:14px 18px;color:var(--wine-600);font-size:14.5px;line-height:1.55;
+  }
+  .bloco-obs{
+    margin-top:6px;padding:12px 16px;border:1px dashed var(--line);border-radius:var(--radius);
+    color:var(--slate-500);font-size:13px;font-style:italic;line-height:1.55;
+  }
+  .bloco-obs .rotulo{font-style:normal;font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;}
+
+  .estado-carregando{display:flex;align-items:center;gap:10px;color:var(--slate-500);font-size:13.5px;margin-top:18px;}
+  .estado-carregando .pt{width:6px;height:6px;border-radius:50%;background:var(--brass-500);animation:pulse 1.1s ease-in-out infinite;}
+  .estado-carregando .pt:nth-child(2){animation-delay:.15s;}
+  .estado-carregando .pt:nth-child(3){animation-delay:.3s;}
+  @keyframes pulse{0%,80%,100%{opacity:.25;}40%{opacity:1;}}
+  @media (prefers-reduced-motion: reduce){ .estado-carregando .pt{animation:none;opacity:.7;} }
+
+  .erro{background:var(--wine-100);color:var(--wine-600);padding:12px 16px;border-radius:var(--radius);font-size:13.5px;margin-top:16px;}
+
+  details.historico{margin-top:36px;}
+  details.historico summary{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--slate-500);cursor:pointer;padding:6px 0;
+  }
+  .hist-item{border-top:1px solid var(--line);padding:14px 0;}
+  .hist-item .q{font-size:13.5px;color:var(--ink-700);margin-bottom:6px;}
+  .hist-item .q b{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--slate-500);text-transform:uppercase;margin-right:8px;}
+  .hist-item button{margin-top:4px;}
+
+  footer.rodape{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);color:var(--slate-500);font-size:11.5px;font-family:'IBM Plex Mono',monospace;}
+
+  @media(max-width:560px){
+    .row2{grid-template-columns:1fr;}
+    nav.tabs button{margin-right:16px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <header class="top">
+    <div class="eyebrow">Acervo normativo · TCE/BA</div>
+    <h1>Consulta às Normas do TCE/BA</h1>
+    <p class="lede">Respostas fundamentadas exclusivamente nas normas carregadas no acervo abaixo. Sem regulamentação correspondente, a ferramenta declara a ausência, sem completar a lacuna.</p>
+    <nav class="tabs">
+      <button id="tab-acervo" class="active" onclick="mudarView('acervo')">Acervo</button>
+      <button id="tab-consulta" onclick="mudarView('consulta')">Consulta</button>
+    </nav>
+  </header>
+
+  <!-- ACERVO -->
+  <section id="view-acervo" class="view active">
+    <div class="acervo-toolbar">
+      <input type="search" id="busca" placeholder="Filtrar por tipo, número, ementa ou palavra do texto" oninput="renderLista()">
+      <button class="btn" onclick="abrirModal()">+ Nova norma</button>
+      <button class="btn secondary" onclick="document.getElementById('input-import').click()">Importar JSON</button>
+      <button class="btn secondary" onclick="exportarJSON()">Exportar JSON</button>
+      <button class="btn ghost" onclick="mudarView('lote')">Colagem em lote</button>
+      <input type="file" id="input-import" accept="application/json" style="display:none" onchange="importarJSON(event)">
+    </div>
+    <div id="lista-acervo" class="grid"></div>
+  </section>
+
+  <!-- COLAGEM EM LOTE -->
+  <section id="view-lote" class="view">
+    <p class="lede" style="margin-top:22px">
+      Cole várias normas de uma vez, separadas por uma linha com <code>===</code>. Cada bloco reconhece os campos
+      <b>Tipo</b>, <b>Número</b>, <b>Data</b>, <b>Ementa</b> e <b>Texto</b> (este último pode ocupar várias linhas, até o próximo <code>===</code> ou o fim do texto).
+    </p>
+    <textarea id="lote-texto" class="texto-integral" style="min-height:280px" placeholder="Tipo: Resolução Normativa
+Número: 097/2023
+Data: 12/04/2023
+Ementa: Dispõe sobre ...
+Texto:
+Art. 1º ...
+
+===
+
+Tipo: Instrução Normativa
+Número: 03/2024
+..."></textarea>
+    <div class="modal-actions">
+      <span class="contagem" id="lote-contagem"></span>
+      <div style="display:flex;gap:10px">
+        <button class="btn ghost" onclick="mudarView('acervo')">Cancelar</button>
+        <button class="btn" onclick="processarLote()">Adicionar ao acervo</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONSULTA -->
+  <section id="view-consulta" class="view">
+    <div class="pergunta-box">
+      <div class="field">
+        <label for="pergunta">Pergunta</label>
+        <textarea class="pergunta" id="pergunta" placeholder="Ex.: qual o prazo para apresentação de defesa em processo de denúncia perante o TCE/BA?"></textarea>
+      </div>
+      <div class="consulta-actions">
+        <span class="contagem" id="acervo-contagem"></span>
+        <button class="btn" id="btn-consultar" onclick="consultar()">Consultar</button>
+      </div>
+    </div>
+
+    <div id="area-resposta"></div>
+
+    <details class="historico">
+      <summary>Consultas recentes</summary>
+      <div id="lista-historico"></div>
+    </details>
+  </section>
+
+  <footer class="rodape">
+    Ferramenta de consulta ao acervo próprio · nenhuma norma é citada fora do que estiver carregado acima
+  </footer>
+
+</div>
+
+<!-- MODAL NOVA/EDITAR NORMA -->
+<div class="overlay" id="overlay-modal">
+  <div class="modal">
+    <h2 id="modal-titulo">Nova norma</h2>
+    <input type="hidden" id="f-id">
+    <div class="row2">
+      <div class="field">
+        <label for="f-tipo">Tipo de ato</label>
+        <select id="f-tipo">
+          <option>Lei Orgânica</option>
+          <option>Regimento Interno</option>
+          <option selected>Resolução Normativa</option>
+          <option>Instrução Normativa</option>
+          <option>Portaria Normativa</option>
+          <option>Súmula</option>
+          <option>Outro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-numero">Número</label>
+        <input type="text" id="f-numero" placeholder="097/2023">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="f-data">Data de aprovação</label>
+        <input type="text" id="f-data" placeholder="12/04/2023">
+      </div>
+      <div class="field">
+        <label for="f-status">Situação</label>
+        <select id="f-status">
+          <option value="vigente" selected>Vigente</option>
+          <option value="revogada">Revogada / alterada</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="f-ementa">Ementa ou título</label>
+      <input type="text" id="f-ementa" placeholder="Dispõe sobre ...">
+    </div>
+    <div class="field">
+      <label for="f-obs">Se revogada ou alterada, por qual norma (opcional)</label>
+      <input type="text" id="f-obs" placeholder="Revogada pela Resolução Normativa nº 144/2024">
+    </div>
+    <div class="field">
+      <label for="f-texto">Texto integral (transcrição literal)</label>
+      <textarea id="f-texto" class="texto-integral" placeholder="Cole aqui o texto integral do dispositivo ou do ato"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn danger" id="btn-excluir" style="display:none" onclick="excluirAtual()">Excluir</button>
+      <div style="display:flex;gap:10px;margin-left:auto">
+        <button class="btn ghost" onclick="fecharModal()">Cancelar</button>
+        <button class="btn" onclick="salvarNorma()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ======================= Estado ======================= */
+let NORMAS = [];
+let HISTORICO = [];
+const CHAVE_NORMAS = 'tce-normas';
+const CHAVE_HIST = 'tce-historico';
+
+const ABREV = {
+  'Lei Orgânica':'LO','Regimento Interno':'RI','Resolução Normativa':'RN',
+  'Instrução Normativa':'IN','Portaria Normativa':'PN','Súmula':'SÚM','Outro':'AT'
+};
+
+function uid(){ return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+/* ======================= Persistência ======================= */
+async function carregarEstado(){
+  try{
+    const r = await window.storage.get(CHAVE_NORMAS, false);
+    NORMAS = r && r.value ? JSON.parse(r.value) : [];
+  }catch(e){ NORMAS = []; }
+  try{
+    const r2 = await window.storage.get(CHAVE_HIST, false);
+    HISTORICO = r2 && r2.value ? JSON.parse(r2.value) : [];
+  }catch(e){ HISTORICO = []; }
+  renderLista();
+  renderHistorico();
+  atualizarContagens();
+}
+
+async function salvarNormas(){
+  try{ await window.storage.set(CHAVE_NORMAS, JSON.stringify(NORMAS), false); }
+  catch(e){ mostrarErroPersistencia(); }
+}
+async function salvarHistorico(){
+  try{ await window.storage.set(CHAVE_HIST, JSON.stringify(HISTORICO.slice(0,30)), false); }
+  catch(e){ /* histórico não é crítico */ }
+}
+function mostrarErroPersistencia(){
+  const el = document.getElementById('area-resposta');
+  if(el) el.insertAdjacentHTML('afterbegin', '<div class="erro">Não foi possível salvar o acervo neste momento. Faça uma exportação em JSON para não perder as alterações.</div>');
+}
+
+/* ======================= Navegação ======================= */
+function mudarView(nome){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+nome).classList.add('active');
+  document.getElementById('tab-acervo').classList.toggle('active', nome==='acervo');
+  document.getElementById('tab-consulta').classList.toggle('active', nome==='consulta');
+  if(nome==='lote'){ atualizarContagemLote(); }
+}
+
+/* ======================= Acervo: render ======================= */
+function renderLista(){
+  const termo = (document.getElementById('busca').value || '').toLowerCase().trim();
+  const cont = document.getElementById('lista-acervo');
+  let lista = NORMAS;
+  if(termo){
+    lista = NORMAS.filter(n =>
+      (n.tipo+' '+n.numero+' '+n.ementa+' '+n.texto).toLowerCase().includes(termo)
+    );
+  }
+  if(lista.length === 0){
+    cont.innerHTML = '<div class="empty">'+(NORMAS.length===0
+      ? 'Nenhuma norma carregada ainda. Use "Nova norma" ou "Colagem em lote" para iniciar o acervo.'
+      : 'Nenhuma norma corresponde ao filtro.')+'</div>';
+    return;
+  }
+  cont.innerHTML = lista.slice().sort((a,b)=> (a.tipo+a.numero).localeCompare(b.tipo+b.numero))
+    .map(n=>{
+      const cod = (ABREV[n.tipo]||'AT') + (n.numero? '-'+n.numero : '');
+      const trecho = (n.texto||'').replace(/\s+/g,' ').slice(0,140);
+      return `<div class="ficha">
+        <span class="codigo">${escapeHtml(cod)}</span>
+        ${n.status==='revogada' ? '<span class="status-revogada" style="float:right">revogada/alterada</span>' : ''}
+        <h3>${escapeHtml(n.ementa || n.tipo)}</h3>
+        <div class="meta">${escapeHtml(n.tipo)} · ${escapeHtml(n.data||'sem data')}</div>
+        <div class="trecho">${escapeHtml(trecho)}${n.texto && n.texto.length>140?'…':''}</div>
+        <div class="acoes">
+          <button class="btn ghost small" onclick="abrirModal('${n.id}')">Editar</button>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function atualizarContagens(){
+  const el = document.getElementById('acervo-contagem');
+  if(el) el.textContent = NORMAS.length + (NORMAS.length===1? ' norma no acervo' : ' normas no acervo');
+}
+
+/* ======================= Modal CRUD ======================= */
+let idAtual = null;
+function abrirModal(id){
+  idAtual = id || null;
+  document.getElementById('modal-titulo').textContent = id ? 'Editar norma' : 'Nova norma';
+  document.getElementById('btn-excluir').style.display = id ? 'inline-block' : 'none';
+  if(id){
+    const n = NORMAS.find(x=>x.id===id);
+    document.getElementById('f-id').value = n.id;
+    document.getElementById('f-tipo').value = n.tipo;
+    document.getElementById('f-numero').value = n.numero;
+    document.getElementById('f-data').value = n.data;
+    document.getElementById('f-status').value = n.status || 'vigente';
+    document.getElementById('f-ementa').value = n.ementa;
+    document.getElementById('f-obs').value = n.obs || '';
+    document.getElementById('f-texto').value = n.texto;
+  }else{
+    document.getElementById('f-id').value = '';
+    ['f-numero','f-data','f-ementa','f-obs','f-texto'].forEach(id2=>document.getElementById(id2).value='');
+    document.getElementById('f-tipo').value = 'Resolução Normativa';
+    document.getElementById('f-status').value = 'vigente';
+  }
+  document.getElementById('overlay-modal').classList.add('open');
+}
+function fecharModal(){ document.getElementById('overlay-modal').classList.remove('open'); }
+
+async function salvarNorma(){
+  const id = document.getElementById('f-id').value || uid();
+  const registro = {
+    id,
+    tipo: document.getElementById('f-tipo').value,
+    numero: document.getElementById('f-numero').value.trim(),
+    data: document.getElementById('f-data').value.trim(),
+    status: document.getElementById('f-status').value,
+    ementa: document.getElementById('f-ementa').value.trim(),
+    obs: document.getElementById('f-obs').value.trim(),
+    texto: document.getElementById('f-texto').value.trim()
+  };
+  if(!registro.texto){ alert('Informe o texto integral do dispositivo antes de salvar.'); return; }
+  const idx = NORMAS.findIndex(n=>n.id===id);
+  if(idx>=0) NORMAS[idx] = registro; else NORMAS.push(registro);
+  await salvarNormas();
+  fecharModal();
+  renderLista();
+  atualizarContagens();
+}
+async function excluirAtual(){
+  const id = document.getElementById('f-id').value;
+  if(!id) return;
+  if(!confirm('Excluir esta norma do acervo?')) return;
+  NORMAS = NORMAS.filter(n=>n.id!==id);
+  await salvarNormas();
+  fecharModal();
+  renderLista();
+  atualizarContagens();
+}
+
+/* ======================= Import / export ======================= */
+function exportarJSON(){
+  const blob = new Blob([JSON.stringify(NORMAS,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'acervo-tce-ba-'+(new Date().toISOString().slice(0,10))+'.json';
+  a.click();
+}
+async function importarJSON(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  try{
+    const texto = await file.text();
+    const dados = JSON.parse(texto);
+    if(!Array.isArray(dados)) throw new Error('formato inválido');
+    let adicionadas = 0;
+    dados.forEach(d=>{
+      if(!d.texto) return;
+      NORMAS.push({
+        id: uid(), tipo: d.tipo||'Outro', numero: d.numero||'', data: d.data||'',
+        status: d.status||'vigente', ementa: d.ementa||'', obs: d.obs||'', texto: d.texto
+      });
+      adicionadas++;
+    });
+    await salvarNormas();
+    renderLista(); atualizarContagens();
+    alert(adicionadas + ' norma(s) importada(s).');
+  }catch(e){
+    alert('Não foi possível ler o arquivo. Verifique se é um JSON exportado por esta própria ferramenta.');
+  }
+  ev.target.value = '';
+}
+
+/* ======================= Colagem em lote ======================= */
+document.addEventListener('input', (e)=>{
+  if(e.target && e.target.id==='lote-texto') atualizarContagemLote();
+});
+function dividirBlocosLote(txt){
+  return txt.split(/^[ \t]*={3,}[ \t]*$/m).map(b=>b.trim()).filter(Boolean);
+}
+function atualizarContagemLote(){
+  const txt = document.getElementById('lote-texto').value;
+  const blocos = dividirBlocosLote(txt);
+  document.getElementById('lote-contagem').textContent = blocos.length + ' bloco(s) reconhecido(s)';
+}
+async function processarLote(){
+  const txt = document.getElementById('lote-texto').value;
+  const blocos = dividirBlocosLote(txt);
+  if(blocos.length===0){ alert('Nenhum bloco encontrado.'); return; }
+  let count = 0;
+  blocos.forEach(bloco=>{
+    const campo = (nome)=>{
+      const re = new RegExp('^'+nome+':\\s*(.*)$','im');
+      const m = bloco.match(re);
+      return m ? m[1].trim() : '';
+    };
+    const tipo = campo('Tipo') || 'Outro';
+    const numero = campo('Número') || campo('Numero');
+    const data = campo('Data');
+    const ementa = campo('Ementa');
+    const mTexto = bloco.match(/^Texto:\s*([\s\S]*)$/im);
+    const texto = mTexto ? mTexto[1].trim() : '';
+    if(!texto) return;
+    NORMAS.push({id:uid(), tipo, numero, data, status:'vigente', ementa, obs:'', texto});
+    count++;
+  });
+  if(count===0){ alert('Nenhum bloco continha um campo "Texto:" reconhecível.'); return; }
+  await salvarNormas();
+  document.getElementById('lote-texto').value = '';
+  atualizarContagemLote();
+  renderLista(); atualizarContagens();
+  mudarView('acervo');
+  alert(count + ' norma(s) adicionada(s) ao acervo.');
+}
+
+/* ======================= Consulta (IA restrita ao acervo) ======================= */
+const SISTEMA = `Você atua exclusivamente como mecanismo de consulta ao acervo normativo do Tribunal de Contas do Estado da Bahia (TCE/BA) fornecido nesta mensagem. Sua função não é interpretar livremente, opinar ou complementar lacunas com conhecimento geral, doutrina ou entendimento de outros tribunais, mas localizar, sintetizar e reproduzir com fidelidade absoluta o conteúdo das normas listadas abaixo, na mensagem do usuário.
+
+REGRA FUNDAMENTAL DE FIDELIDADE DOCUMENTAL:
+1. Nunca cite, parafraseie ou dê a entender a existência de dispositivo normativo que não conste literalmente do acervo fornecido na mensagem.
+2. Nunca preencha lacunas com inferências baseadas em conhecimento geral de Direito Administrativo, Direito Financeiro, jurisprudência do STF, do STJ, do TCU ou de outros Tribunais de Contas, salvo se o próprio dispositivo do acervo mencionar expressamente essa fonte externa.
+3. Se o acervo fornecido não contiver amparo direto para a pergunta, declare a ausência de regulamentação; não ofereça hipóteses do que a norma "provavelmente" diria.
+4. Percorra a totalidade do acervo fornecido, não apenas o primeiro trecho aparentemente relacionado.
+5. Na dúvida entre citar algo impreciso e declarar ausência de regulamentação, prevaleça a ausência de regulamentação.
+
+FORMATO OBRIGATÓRIO DA RESPOSTA (responda usando exatamente estes marcadores de linha, um por bloco):
+
+Se houver norma aplicável:
+## SINTESE
+(parágrafo curto e prático respondendo objetivamente à pergunta, sem ainda reproduzir o texto normativo)
+## NORMA
+FONTE: (identificação completa: tipo de ato, número, data, e artigo/parágrafo/inciso quando aplicável)
+(transcrição literal do dispositivo correspondente, sem aspas externas, preservando a redação original; se o dispositivo for muito extenso, transcreva o menor trecho literal autossuficiente que ampare a síntese, priorizando precisão sobre completude)
+(repita o bloco ## NORMA quantas vezes forem necessárias, uma por dispositivo citado, na ordem: Lei Orgânica, Regimento Interno, Resoluções Normativas, Instruções Normativas, Portarias Normativas, Súmulas)
+## OBSERVACAO
+(opcional: interpretação sistemática ou analógica, apenas se necessária, claramente identificada como não normativa; omita este bloco se não houver observação a fazer)
+
+Se NÃO houver norma aplicável no acervo fornecido:
+## SEM_NORMA
+Não há, no acervo carregado nesta consulta, regulamentação específica sobre a matéria consultada.
+
+Nunca combine os dois formatos. Nunca use jurisprudência do STF, STJ, TCU ou de outros Tribunais de Contas para fundamentar a resposta, salvo remissão expressa no próprio texto do acervo.`;
+
+function montarCorpoAcervo(pergunta){
+  const termos = pergunta.toLowerCase().split(/\W+/).filter(t=>t.length>3);
+  let selecionadas = NORMAS;
+  const tamanhoTotal = NORMAS.reduce((s,n)=>s+n.texto.length,0);
+  if(tamanhoTotal > 280000 && termos.length){
+    selecionadas = NORMAS.map(n=>{
+      const base = (n.tipo+' '+n.ementa+' '+n.texto).toLowerCase();
+      const score = termos.reduce((s,t)=> s + (base.includes(t)?1:0), 0);
+      return {n, score};
+    }).sort((a,b)=>b.score-a.score).slice(0,25).map(x=>x.n);
+  }
+  const corpo = selecionadas.map((n,i)=>{
+    const cod = (ABREV[n.tipo]||'AT') + (n.numero? '-'+n.numero : '');
+    const statusTxt = n.status==='revogada' ? ' [REVOGADA/ALTERADA'+(n.obs? ' — '+n.obs:'')+']' : '';
+    return `[${i+1}] ${n.tipo} nº ${n.numero||'s/n'} (${n.data||'sem data'}) — ${cod}${statusTxt}\nEmenta: ${n.ementa||'—'}\nTexto integral:\n${n.texto}`;
+  }).join('\n\n---\n\n');
+  const aviso = selecionadas.length < NORMAS.length
+    ? `\n\n[Aviso: o acervo completo tem ${NORMAS.length} normas; por volume, foram pré-selecionadas as ${selecionadas.length} mais relacionadas à pergunta pelas palavras-chave. Caso a resposta pareça incompleta, refine a pergunta com termos mais específicos.]`
+    : '';
+  return `ACERVO NORMATIVO DISPONÍVEL (${selecionadas.length} de ${NORMAS.length} normas):\n\n${corpo || '(acervo vazio — nenhuma norma foi carregada ainda)'}${aviso}\n\nPERGUNTA:\n${pergunta}`;
+}
+
+async function consultar(){
+  const pergunta = document.getElementById('pergunta').value.trim();
+  if(!pergunta) return;
+  if(NORMAS.length===0){
+    document.getElementById('area-resposta').innerHTML = '<div class="erro">O acervo está vazio. Cadastre ao menos uma norma na aba Acervo antes de consultar.</div>';
+    return;
+  }
+  const btn = document.getElementById('btn-consultar');
+  btn.disabled = true;
+  const area = document.getElementById('area-resposta');
+  area.innerHTML = '<div class="estado-carregando"><span class="pt"></span><span class="pt"></span><span class="pt"></span> Percorrendo o acervo carregado…</div>';
+
+  try{
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: SISTEMA,
+        messages: [{ role: "user", content: montarCorpoAcervo(pergunta) }]
+      })
+    });
+    const dados = await resp.json();
+    const texto = (dados.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    if(!texto){ throw new Error('resposta vazia'); }
+    renderResposta(texto);
+    HISTORICO.unshift({ pergunta, resposta: texto, quando: new Date().toISOString() });
+    await salvarHistorico();
+    renderHistorico();
+  }catch(e){
+    area.innerHTML = '<div class="erro">Não foi possível concluir a consulta agora. Tente novamente em instantes.</div>';
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function renderResposta(texto){
+  const area = document.getElementById('area-resposta');
+  if(/##\s*SEM_NORMA/i.test(texto)){
+    const frase = texto.split(/##\s*SEM_NORMA/i)[1].trim();
+    area.innerHTML = `<div class="resposta"><div class="bloco-semnorma">${escapeHtml(frase)}</div></div>`;
+    return;
+  }
+  const partes = texto.split(/(?=##\s*(?:SINTESE|NORMA|OBSERVACAO)\b)/i);
+  let html = '<div class="resposta">';
+  partes.forEach(p=>{
+    const m = p.match(/^##\s*(SINTESE|NORMA|OBSERVACAO)\b\s*([\s\S]*)$/i);
+    if(!m) return;
+    const tipo = m[1].toUpperCase();
+    const corpo = m[2].trim();
+    if(tipo==='SINTESE'){
+      html += `<div class="bloco-sintese"><span class="rotulo">Síntese</span>${escapeHtml(corpo)}</div>`;
+    }else if(tipo==='NORMA'){
+      const mm = corpo.match(/^FONTE:\s*(.*?)\n([\s\S]*)$/i);
+      const fonte = mm ? mm[1].trim() : '';
+      const conteudo = mm ? mm[2].trim() : corpo;
+      html += `<div class="bloco-norma">${fonte? '<div class="fonte">'+escapeHtml(fonte)+'</div>':''}<div class="texto">${escapeHtml(conteudo)}</div></div>`;
+    }else if(tipo==='OBSERVACAO'){
+      html += `<div class="bloco-obs"><span class="rotulo">Observação interpretativa (não normativa)</span>${escapeHtml(corpo)}</div>`;
+    }
+  });
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function renderHistorico(){
+  const el = document.getElementById('lista-historico');
+  if(!el) return;
+  if(HISTORICO.length===0){ el.innerHTML = '<div class="empty" style="margin-top:10px">Nenhuma consulta ainda.</div>'; return; }
+  el.innerHTML = HISTORICO.slice(0,15).map((h,i)=>`
+    <div class="hist-item">
+      <div class="q"><b>Pergunta</b>${escapeHtml(h.pergunta)}</div>
+      <button class="btn ghost small" onclick='reabrirHistorico(${i})'>Ver resposta</button>
+    </div>`).join('');
+}
+function reabrirHistorico(i){
+  const h = HISTORICO[i];
+  if(!h) return;
+  document.getElementById('pergunta').value = h.pergunta;
+  renderResposta(h.resposta);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ======================= Inicialização ======================= */
+carregarEstado();
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{ /* execução como artefato isolado: sem escopo para SW */ });
+}
+</script>
+</body>
+</html>
