@@ -277,12 +277,13 @@
   <section id="view-lote" class="view">
     <p class="lede" style="margin-top:22px">
       Cole várias normas de uma vez, separadas por uma linha com <code>===</code>. Cada bloco reconhece os campos
-      <b>Tipo</b>, <b>Número</b>, <b>Data</b>, <b>Ementa</b> e <b>Texto</b> (este último pode ocupar várias linhas, até o próximo <code>===</code> ou o fim do texto).
+      <b>Tipo</b>, <b>Número</b>, <b>Data</b>, <b>Ementa</b>, <b>Link</b> (opcional) e <b>Texto</b> (este último pode ocupar várias linhas, até o próximo <code>===</code> ou o fim do texto — por isso deve ser sempre o último campo do bloco).
     </p>
     <textarea id="lote-texto" class="texto-integral" style="min-height:280px" placeholder="Tipo: Resolução Normativa
 Número: 097/2023
 Data: 12/04/2023
 Ementa: Dispõe sobre ...
+Link: https://www.tce.ba.gov.br/...
 Texto:
 Art. 1º ...
 
@@ -377,8 +378,16 @@ Número: 03/2024
       <input type="text" id="f-obs" placeholder="Revogada pela Resolução Normativa nº 144/2024">
     </div>
     <div class="field">
-      <label for="f-texto">Texto integral (transcrição literal)</label>
-      <textarea id="f-texto" class="texto-integral" placeholder="Cole aqui o texto integral do dispositivo ou do ato"></textarea>
+      <label for="f-link">Link da norma no site oficial (opcional)</label>
+      <input type="text" id="f-link" placeholder="https://www.tce.ba.gov.br/...">
+    </div>
+    <div class="field">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+        <label for="f-texto" style="margin-bottom:0">Texto integral (transcrição literal)</label>
+        <button type="button" class="btn ghost small" onclick="document.getElementById('input-pdf').click()">Carregar PDF</button>
+        <input type="file" id="input-pdf" accept="application/pdf" style="display:none" onchange="carregarPDF(event)">
+      </div>
+      <textarea id="f-texto" class="texto-integral" style="margin-top:8px" placeholder="Cole aqui o texto integral do dispositivo ou do ato, ou use &quot;Carregar PDF&quot; acima e revise o resultado"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn danger" id="btn-excluir" style="display:none" onclick="excluirAtual()">Excluir</button>
@@ -390,7 +399,12 @@ Número: 03/2024
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
 <script>
+if(window.pdfjsLib){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+}
+
 /* ======================= Estado ======================= */
 let NORMAS = [];
 let HISTORICO = [];
@@ -470,6 +484,7 @@ function renderLista(){
         <div class="trecho">${escapeHtml(trecho)}${n.texto && n.texto.length>140?'…':''}</div>
         <div class="acoes">
           <button class="btn ghost small" onclick="abrirModal('${n.id}')">Editar</button>
+          ${n.link ? '<a class="btn ghost small" href="'+escapeHtml(n.link)+'" target="_blank" rel="noopener">Ver fonte</a>' : ''}
         </div>
       </div>`;
     }).join('');
@@ -505,10 +520,11 @@ function abrirModal(id){
     document.getElementById('f-status').value = n.status || 'vigente';
     document.getElementById('f-ementa').value = n.ementa;
     document.getElementById('f-obs').value = n.obs || '';
+    document.getElementById('f-link').value = n.link || '';
     document.getElementById('f-texto').value = n.texto;
   }else{
     document.getElementById('f-id').value = '';
-    ['f-numero','f-data','f-ementa','f-obs','f-texto'].forEach(id2=>document.getElementById(id2).value='');
+    ['f-numero','f-data','f-ementa','f-obs','f-link','f-texto'].forEach(id2=>document.getElementById(id2).value='');
     document.getElementById('f-tipo').value = 'Resolução Normativa';
     document.getElementById('f-status').value = 'vigente';
   }
@@ -526,6 +542,7 @@ async function salvarNorma(){
     status: document.getElementById('f-status').value,
     ementa: document.getElementById('f-ementa').value.trim(),
     obs: document.getElementById('f-obs').value.trim(),
+    link: document.getElementById('f-link').value.trim(),
     texto: document.getElementById('f-texto').value.trim()
   };
   if(!registro.texto){ alert('Informe o texto integral do dispositivo antes de salvar.'); return; }
@@ -545,6 +562,42 @@ async function excluirAtual(){
   fecharModal();
   renderLista();
   atualizarContagens();
+}
+
+/* ======================= Leitura de PDF ======================= */
+async function carregarPDF(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  const areaTexto = document.getElementById('f-texto');
+  const btn = ev.target.previousElementSibling;
+  const rotuloOriginal = btn.textContent;
+  if(!window.pdfjsLib){
+    alert('O leitor de PDF não carregou (sem conexão com a internet?). Cole o texto manualmente.');
+    ev.target.value = '';
+    return;
+  }
+  btn.textContent = 'Lendo PDF…';
+  btn.disabled = true;
+  try{
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    let texto = '';
+    for(let p=1; p<=pdf.numPages; p++){
+      const pagina = await pdf.getPage(p);
+      const conteudo = await pagina.getTextContent();
+      texto += (texto? '\n\n':'') + conteudo.items.map(it=>it.str).join(' ');
+    }
+    texto = texto.trim();
+    if(!texto) throw new Error('sem texto extraído');
+    areaTexto.value = texto;
+    alert('Texto extraído do PDF. Revise com atenção antes de salvar: a extração pode conter erros de formatação, cabeçalhos ou numeração de página misturados ao texto.');
+  }catch(e){
+    alert('Não foi possível extrair texto deste PDF. Ele pode ser um documento escaneado (sem texto selecionável) — nesse caso, cole o texto manualmente.');
+  }finally{
+    btn.textContent = rotuloOriginal;
+    btn.disabled = false;
+    ev.target.value = '';
+  }
 }
 
 /* ======================= Import / export ======================= */
@@ -567,7 +620,7 @@ async function importarJSON(ev){
       if(!d.texto) return;
       NORMAS.push({
         id: uid(), tipo: d.tipo||'Outro', numero: d.numero||'', data: d.data||'',
-        status: d.status||'vigente', ementa: d.ementa||'', obs: d.obs||'', texto: d.texto
+        status: d.status||'vigente', ementa: d.ementa||'', obs: d.obs||'', link: d.link||'', texto: d.texto
       });
       adicionadas++;
     });
@@ -607,10 +660,11 @@ async function processarLote(){
     const numero = campo('Número') || campo('Numero');
     const data = campo('Data');
     const ementa = campo('Ementa');
+    const link = campo('Link');
     const mTexto = bloco.match(/^Texto:\s*([\s\S]*)$/im);
     const texto = mTexto ? mTexto[1].trim() : '';
     if(!texto) return;
-    NORMAS.push({id:uid(), tipo, numero, data, status:'vigente', ementa, obs:'', texto});
+    NORMAS.push({id:uid(), tipo, numero, data, status:'vigente', ementa, obs:'', link, texto});
     count++;
   });
   if(count===0){ alert('Nenhum bloco continha um campo "Texto:" reconhecível.'); return; }
