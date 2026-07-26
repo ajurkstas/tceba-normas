@@ -269,6 +269,10 @@
       <button class="btn ghost" onclick="mudarView('lote')">Colagem em lote</button>
       <input type="file" id="input-import" accept="application/json" style="display:none" onchange="importarJSON(event)">
     </div>
+    <div id="aviso-rascunho" class="bloco-obs" style="display:none;margin-bottom:16px">
+      <span class="rotulo">Rascunho local</span>
+      Estas alterações estão salvas apenas neste navegador. Quem acessar o link ainda vê a última versão publicada. Exporte o JSON e peça a publicação para atualizar o acervo para todo mundo.
+    </div>
     <span class="contagem" id="acervo-contagem" style="display:block;margin-bottom:14px"></span>
     <div id="lista-acervo" class="grid"></div>
   </section>
@@ -420,32 +424,61 @@ const ABREV = {
 
 function uid(){ return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
-/* ======================= Persistência ======================= */
+/* ======================= Persistência =======================
+   O acervo "publicado" (acervo.json) é o mesmo para qualquer pessoa que
+   acesse o site — é o arquivo do repositório, atualizado por quem
+   administra o site. Alterações feitas na aba Acervo ficam guardadas
+   apenas neste navegador (localStorage) até serem publicadas: são um
+   rascunho local, não algo que os demais visitantes já veem.
+================================================================= */
+const ARQUIVO_ACERVO_PUBLICADO = 'acervo.json';
+let acervoEhRascunhoLocal = false;
+
 async function carregarEstado(){
   try{
-    const r = await window.storage.get(CHAVE_NORMAS, false);
-    NORMAS = r && r.value ? JSON.parse(r.value) : [];
+    const local = localStorage.getItem(CHAVE_NORMAS);
+    if(local){
+      NORMAS = JSON.parse(local);
+      acervoEhRascunhoLocal = true;
+    }else{
+      NORMAS = await carregarAcervoPublicado();
+      acervoEhRascunhoLocal = false;
+    }
   }catch(e){ NORMAS = []; }
   try{
-    const r2 = await window.storage.get(CHAVE_HIST, false);
-    HISTORICO = r2 && r2.value ? JSON.parse(r2.value) : [];
+    const h = localStorage.getItem(CHAVE_HIST);
+    HISTORICO = h ? JSON.parse(h) : [];
   }catch(e){ HISTORICO = []; }
   renderLista();
   renderHistorico();
   atualizarContagens();
+  atualizarAvisoRascunho();
 }
 
-async function salvarNormas(){
-  try{ await window.storage.set(CHAVE_NORMAS, JSON.stringify(NORMAS), false); }
+async function carregarAcervoPublicado(){
+  try{
+    const r = await fetch(ARQUIVO_ACERVO_PUBLICADO, {cache:'no-store'});
+    if(!r.ok) return [];
+    const dados = await r.json();
+    return Array.isArray(dados) ? dados : [];
+  }catch(e){ return []; }
+}
+
+function salvarNormas(){
+  try{ localStorage.setItem(CHAVE_NORMAS, JSON.stringify(NORMAS)); acervoEhRascunhoLocal = true; atualizarAvisoRascunho(); }
   catch(e){ mostrarErroPersistencia(); }
 }
-async function salvarHistorico(){
-  try{ await window.storage.set(CHAVE_HIST, JSON.stringify(HISTORICO.slice(0,30)), false); }
+function salvarHistorico(){
+  try{ localStorage.setItem(CHAVE_HIST, JSON.stringify(HISTORICO.slice(0,30))); }
   catch(e){ /* histórico não é crítico */ }
 }
 function mostrarErroPersistencia(){
   const el = document.getElementById('area-resposta');
   if(el) el.insertAdjacentHTML('afterbegin', '<div class="erro">Não foi possível salvar o acervo neste momento. Faça uma exportação em JSON para não perder as alterações.</div>');
+}
+function atualizarAvisoRascunho(){
+  const el = document.getElementById('aviso-rascunho');
+  if(el) el.style.display = acervoEhRascunhoLocal ? 'block' : 'none';
 }
 
 /* ======================= Navegação ======================= */
