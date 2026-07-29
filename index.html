@@ -443,7 +443,17 @@ async function carregarEstado(){
   if(DENTRO_DO_CLAUDE){
     try{
       const r = await window.storage.get(CHAVE_NORMAS, false);
-      NORMAS = r && r.value ? JSON.parse(r.value) : [];
+      if(r && r.value){
+        NORMAS = JSON.parse(r.value);
+      }else if(Array.isArray(window.ACERVO_PADRAO) && window.ACERVO_PADRAO.length){
+        // Primeira vez que este artefato é aberto: carrega o acervo publicado
+        // embutido no arquivo e já grava no armazenamento do Claude, para não
+        // precisar recarregar nas próximas vezes.
+        NORMAS = window.ACERVO_PADRAO;
+        await window.storage.set(CHAVE_NORMAS, JSON.stringify(NORMAS), false);
+      }else{
+        NORMAS = [];
+      }
     }catch(e){ NORMAS = []; }
     try{
       const r2 = await window.storage.get(CHAVE_HIST, false);
