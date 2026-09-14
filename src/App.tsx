@@ -7,11 +7,13 @@ import { carregarHistorico, limparHistorico, salvarHistorico } from './servicos/
 import { aplicarTema, carregarAjustes, salvarAjustes } from './servicos/ajustes';
 import { temChave as verificarChave } from './servicos/chaveApi';
 import { NATIVO } from './servicos/plataforma';
+import { executarVoltar } from './servicos/voltar';
 import { BarraAbas, type Aba } from './componentes/BarraAbas';
 import { Aviso } from './componentes/basicos';
 import { Consulta } from './telas/Consulta';
 import { Acervo } from './telas/Acervo';
 import { Ajustes } from './telas/Ajustes';
+import { VisualizadorNorma } from './componentes/VisualizadorNorma';
 
 export function App() {
   const [aba, setAba] = useState<Aba>('consulta');
@@ -23,6 +25,8 @@ export function App() {
   const [pronto, setPronto] = useState(false);
   const [avisoInicial, setAvisoInicial] = useState<string | null>(null);
   const [versao, setVersao] = useState(__VERSAO_APP__);
+  const [visualizando, setVisualizando] = useState<Norma | null>(null);
+  const [editarAoFechar, setEditarAoFechar] = useState<Norma | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -55,6 +59,7 @@ export function App() {
     if (!NATIVO) return;
     let handle: { remove: () => Promise<void> } | undefined;
     CapApp.addListener('backButton', () => {
+      if (executarVoltar()) return;
       if (aba !== 'consulta') setAba('consulta');
       else CapApp.exitApp();
     }).then((h) => { handle = h; });
@@ -89,9 +94,11 @@ export function App() {
     <div className="mx-auto min-h-screen max-w-3xl px-4 pb-24 pt-4">
       {avisoInicial && <Aviso tom="info" className="mb-4">{avisoInicial}</Aviso>}
       {aba === 'consulta' && (
-        <Consulta normas={normas} modelo={ajustes.modelo} temChave={temChave} historico={historico} aoRegistrar={registrarHistorico} irParaAjustes={() => setAba('ajustes')} />
+        <Consulta normas={normas} modelo={ajustes.modelo} temChave={temChave} historico={historico} aoRegistrar={registrarHistorico} irParaAjustes={() => setAba('ajustes')} aoVisualizar={setVisualizando} />
       )}
-      {aba === 'acervo' && <Acervo normas={normas} rascunhoLocal={rascunho} aoSalvar={salvarNormas} />}
+      {aba === 'acervo' && (
+        <Acervo normas={normas} rascunhoLocal={rascunho} aoSalvar={salvarNormas} aoVisualizar={setVisualizando} editarInicial={editarAoFechar} aoConsumirEditarInicial={() => setEditarAoFechar(null)} />
+      )}
       {aba === 'ajustes' && (
         <Ajustes
           ajustes={ajustes}
@@ -104,6 +111,13 @@ export function App() {
         />
       )}
       <BarraAbas ativa={aba} aoMudar={setAba} />
+      {visualizando && (
+        <VisualizadorNorma
+          norma={visualizando}
+          aoFechar={() => setVisualizando(null)}
+          aoEditar={() => { setEditarAoFechar(visualizando); setVisualizando(null); setAba('acervo'); }}
+        />
+      )}
     </div>
   );
 }

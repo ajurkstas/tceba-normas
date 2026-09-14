@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   ArrowDownTrayIcon, ArrowTopRightOnSquareIcon, ArrowUpTrayIcon, ClipboardDocumentListIcon,
-  DocumentArrowUpIcon, PencilSquareIcon, PlusIcon, TrashIcon,
+  DocumentArrowUpIcon, DocumentTextIcon, PencilSquareIcon, PlusIcon, TrashIcon,
 } from '@heroicons/react/24/outline';
 import { PencilIcon } from '@heroicons/react/20/solid';
 import type { Norma, Situacao, TipoAto } from '../dominio/tipos';
@@ -16,11 +16,14 @@ interface Props {
   normas: Norma[];
   rascunhoLocal: boolean;
   aoSalvar: (normas: Norma[]) => Promise<void>;
+  aoVisualizar: (norma: Norma) => void;
+  editarInicial?: Norma | null;
+  aoConsumirEditarInicial?: () => void;
 }
 
 const VAZIA: Norma = { id: '', tipo: 'Resolução Normativa', numero: '', data: '', status: 'vigente', ementa: '', obs: '', link: '', texto: '' };
 
-export function Acervo({ normas, rascunhoLocal, aoSalvar }: Props) {
+export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarInicial, aoConsumirEditarInicial }: Props) {
   const [filtro, setFiltro] = useState('');
   const [editando, setEditando] = useState<Norma | null>(null);
   const [lote, setLote] = useState<string | null>(null);
@@ -28,6 +31,10 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar }: Props) {
   const [lendoPdf, setLendoPdf] = useState(false);
   const inputImport = useRef<HTMLInputElement>(null);
   const inputPdf = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editarInicial) { setEditando({ ...editarInicial }); aoConsumirEditarInicial?.(); }
+  }, [editarInicial, aoConsumirEditarInicial]);
 
   const lista = useMemo(() => {
     const t = filtro.trim().toLowerCase();
@@ -154,7 +161,14 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar }: Props) {
           <h3 className="mb-2 font-mono text-xs uppercase tracking-wide text-slate-500">{tipo}</h3>
           <div className="space-y-2">
             {itens.map((n) => (
-              <article key={n.id} className="rounded border border-stone-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+              <article
+                key={n.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => aoVisualizar(n)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); aoVisualizar(n); } }}
+                className="cursor-pointer rounded border border-stone-300 bg-white p-3 transition hover:border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-700 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-amber-500"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <span className="font-mono text-xs text-amber-700 dark:text-amber-400">{codigoNorma(n)}</span>
                   <SeloSituacao status={n.status} />
@@ -162,13 +176,16 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar }: Props) {
                 <h4 className="mt-1 font-medium leading-snug">{n.ementa || n.tipo}</h4>
                 <p className="mt-0.5 text-xs text-slate-500">{n.data || 'sem data'}{n.obs ? ` · ${n.obs}` : ''}</p>
                 <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{n.texto.replace(/\s+/g, ' ').slice(0, 200)}</p>
-                <div className="mt-2 flex gap-1">
+                <div className="mt-2 flex items-center justify-between gap-1" onClick={(e) => e.stopPropagation()}>
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-500"><DocumentTextIcon className="h-4 w-4" /> Toque para ler na íntegra</span>
+                  <div className="flex gap-1">
                   <Botao pequeno variante="fantasma" onClick={() => setEditando({ ...n })}><PencilSquareIcon className="h-5 w-5" /> Editar</Botao>
                   {n.link && (
                     <a href={n.link} target="_blank" rel="noopener" className="inline-flex min-h-9 items-center gap-2 rounded px-3 text-sm font-medium text-slate-700 hover:bg-stone-200 dark:text-stone-300 dark:hover:bg-slate-800">
                       <ArrowTopRightOnSquareIcon className="h-5 w-5" /> Fonte
                     </a>
                   )}
+                  </div>
                 </div>
               </article>
             ))}

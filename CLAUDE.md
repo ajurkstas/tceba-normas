@@ -30,8 +30,9 @@ Este arquivo é o ponto de entrada. As regras detalhadas ficam em `_instrucoes/`
 - React 18 + TypeScript + Vite
 - Tailwind CSS (somente paleta padrão do Tailwind, sem cores customizadas)
 - Heroicons (`@heroicons/react`)
-- Capacitor (Android), com `CapacitorHttp` habilitado
-- `@anthropic-ai/sdk` para a consulta por IA
+- Capacitor (Android), com `CapacitorHttp` desabilitado (fetch nativo do WebView)
+- `@anthropic-ai/sdk` para a consulta por IA; busca local sem IA em `src/dominio/buscaLocal.ts`
+- `react-markdown` + `@tailwindcss/typography` para o visualizador de norma
 - pdf.js para importar texto de PDF no cadastro do acervo
 
 ## Comandos

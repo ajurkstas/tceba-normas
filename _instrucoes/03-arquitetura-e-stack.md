@@ -9,7 +9,7 @@
 | Estilo | Tailwind CSS, somente paleta padrão | Pedido do projeto; consistência sem tokens próprios |
 | Ícones | `@heroicons/react` | Pedido do projeto; um único conjunto de ícones |
 | IA | `@anthropic-ai/sdk` chamado do próprio dispositivo com a chave do usuário | Elimina dependência de backend; a chave fica no aparelho |
-| Rede no Android | `CapacitorHttp` habilitado (`plugins.CapacitorHttp.enabled: true`) | Evita CORS no WebView, pois o `fetch` é roteado pela camada nativa |
+| Rede no Android | `fetch` nativo do WebView (`CapacitorHttp` desabilitado) | O SDK envia o cabeçalho que libera CORS; o patch do CapacitorHttp quebra o streaming |
 | Persistência do acervo | `@capacitor/filesystem`, `Directory.Data`, arquivo `acervo.json` | Volume (centenas de KB) acima do confortável para `Preferences` |
 | Histórico e preferências | `@capacitor/preferences` | Dados pequenos |
 | Chave da API | armazenamento seguro nativo (ver `05-ajustes-e-chave-api.md`) | Nunca em `Preferences`, `localStorage` ou arquivo |
@@ -47,6 +47,7 @@ tceba-normas/
 │   │   ├── historico.ts
 │   │   ├── ajustes.ts         # preferências não sensíveis (modelo, tema)
 │   │   ├── chaveApi.ts        # única porta de acesso à chave (secure storage)
+│   │   ├── voltar.ts          # pilha de fechamento para o botão voltar do Android
 │   │   └── pdf.ts
 │   └── estilos/index.css      # diretivas do Tailwind
 ├── android/                   # gerado por `npx cap add android`; comitado

@@ -1,13 +1,15 @@
 import { useEffect, type ReactNode } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { registrarVoltar } from '../servicos/voltar';
 
 export function Modal({ titulo, aberto, aoFechar, children, rodape }: { titulo: string; aberto: boolean; aoFechar: () => void; children: ReactNode; rodape?: ReactNode }) {
   useEffect(() => {
     if (!aberto) return;
+    const remover = registrarVoltar(aoFechar);
     const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') aoFechar(); };
     window.addEventListener('keydown', tecla);
     document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', tecla); document.body.style.overflow = ''; };
+    return () => { remover(); window.removeEventListener('keydown', tecla); document.body.style.overflow = ''; };
   }, [aberto, aoFechar]);
 
   if (!aberto) return null;

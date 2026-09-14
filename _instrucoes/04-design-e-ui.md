@@ -85,7 +85,8 @@ Tamanho padrão: `h-6 w-6` na navegação, `h-5 w-5` em botões, `h-4 w-4` em se
 ### Consulta
 - Logo no topo (`logo-titulo.png`), sem título escrito.
 - Texto de apresentação curto explicando que a resposta se baseia apenas no acervo carregado.
-- Campo de pergunta (textarea, 3 a 6 linhas) e botão primário "Consultar".
+- Campo de pergunta (textarea, 3 a 6 linhas) e dois botões: "Buscar no acervo" (secundário, `MagnifyingGlassIcon`; funciona sem chave) e "Buscar e consultar IA" (primário, `SparklesIcon`; desabilitado sem chave, com link para Ajustes). Durante a consulta, o botão primário vira "Cancelar" (`StopIcon`).
+- Resposta em duas seções, nesta ordem: "Normas relacionadas no acervo (busca sem IA)", com os dispositivos encontrados e termos realçados em `mark` `amber-100`; e "Resposta objetiva (gerada por IA a partir do acervo)", com os blocos de `02`.
 - Estado de carregamento com a frase "Percorrendo o acervo carregado" e, com streaming, a resposta aparece progressivamente.
 - Aviso quando o acervo foi pré-selecionado por volume.
 - Blocos de resposta conforme `02-prompt-de-sistema.md`.
@@ -98,6 +99,7 @@ Tamanho padrão: `h-6 w-6` na navegação, `h-5 w-5` em botões, `h-4 w-4` em se
 - Lista de normas agrupadas por tipo, na ordem de hierarquia (`hierarquia.ts`), com número, data, ementa, selo de situação e link oficial.
 - Aviso "Rascunho local" enquanto houver edições não publicadas, com botão "Exportar JSON".
 - Ações: Nova norma, Colagem em lote, Importar JSON, Exportar JSON.
+- Toque em qualquer ponto do cartão abre o visualizador de tela inteira (`VisualizadorNorma`): cabeçalho fixo com código, ementa, selo e botão Editar; corpo em Markdown (`normaParaMarkdown.ts`) renderizado com `react-markdown` e `@tailwindcss/typography` (`prose`), fonte serifada, artigos como `###`, capítulos e títulos como `##`, incisos em bloco de citação. Fecha com X, Escape ou botão voltar do Android (`servicos/voltar.ts`).
 - Modal de norma com os campos atuais: tipo, número, data, situação, ementa, norma revogadora ou modificadora, link, texto integral, botão Carregar PDF.
 - Exclusão sempre com confirmação.
 

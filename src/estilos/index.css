@@ -8,3 +8,4 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 textarea, input, select { font: inherit; }
+@plugin "@tailwindcss/typography";

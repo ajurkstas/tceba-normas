@@ -20,7 +20,7 @@ function criarCliente(chave: string) {
 }
 ```
 
-`capacitor.config.ts` habilita `plugins: { CapacitorHttp: { enabled: true } }`, o que faz o `fetch` global ser roteado pela camada nativa no Android. Verificar, ao implementar, que respostas em streaming (SSE) funcionam com o `CapacitorHttp` na versão em uso; se não funcionarem, desabilitar o streaming apenas no Android e usar `messages.create` com `max_tokens` adequado, mantendo a interface de `consultar` igual.
+`CapacitorHttp` fica desabilitado em `capacitor.config.ts` (`plugins.CapacitorHttp.enabled: false`): o patch de `fetch` do plugin não suporta streaming e quebra o SDK. O `fetch` nativo do WebView funciona direto com api.anthropic.com porque o SDK envia o cabeçalho `anthropic-dangerous-direct-browser-access`, que libera CORS. Se o streaming falhar por motivo de rede (erro `conexao` ou `desconhecido`), `consultar` tenta uma segunda vez sem streaming (`messages.create`) antes de desistir.
 
 ## Modelo
 
@@ -59,16 +59,19 @@ O acervo serializado não muda entre consultas e é grande (o Regimento Interno 
 
 ## Mapeamento de erros para o usuário
 
-Usar as classes tipadas do SDK, da mais específica para a mais geral. Nenhuma mensagem exibe o corpo do erro nem a chave.
+Usar as classes tipadas do SDK, da mais específica para a mais geral. A mensagem principal é curta; os detalhes técnicos (status HTTP, tipo e mensagem da API) vão em `ErroConsulta.detalhes`, exibidos em um bloco expansível "Detalhes técnicos", sempre passando por `ocultarChave` para nunca expor `sk-ant-...`.
 
 | Erro do SDK | Mensagem |
 |---|---|
 | `AuthenticationError` (401) | A chave foi recusada pela Anthropic. Confira em Ajustes. |
 | `PermissionDeniedError` (403) | Esta chave não tem permissão para usar o modelo escolhido. |
 | `RateLimitError` (429) | Limite de uso atingido. Aguarde alguns instantes e tente de novo. |
-| `BadRequestError` (400) | A consulta não pôde ser processada. Se o acervo for muito grande, refine a pergunta. |
+| `BadRequestError` (400) | A Anthropic rejeitou a requisição. Veja os detalhes técnicos. |
+| `NotFoundError` (404) | O modelo escolhido não foi encontrado. Escolha outro em Ajustes. |
+| `APIConnectionTimeoutError` | A consulta demorou demais e foi interrompida. Tente novamente. |
 | `InternalServerError` (5xx) | A Anthropic está indisponível no momento. Tente novamente em instantes. |
-| `APIConnectionError` | Sem conexão. Verifique a internet e tente novamente. |
+| `APIConnectionError` | Sem conexão com api.anthropic.com. Verifique a internet e tente novamente. |
+| `APIUserAbortError` | Consulta cancelada. |
 | outro | Não foi possível concluir a consulta agora. |
 
 Se `stop_reason` for `refusal`, exibir "O modelo recusou processar esta consulta." e registrar `stop_details.category` só em console de desenvolvimento. Se `stop_reason` for `max_tokens`, exibir o que veio e o aviso "A resposta foi interrompida por tamanho; refine a pergunta."

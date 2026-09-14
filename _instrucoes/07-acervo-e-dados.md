@@ -76,8 +76,12 @@ Claude Code faz o passo 3 quando o usuário entregar o JSON exportado. Antes de 
 
 - Preferir o texto consolidado oficial. Ao cadastrar texto consolidado, informar em `obs` até qual norma a consolidação vai (exemplo já em uso: "Texto consolidado com as alterações posteriores, até a Resolução Normativa nº 042/2022").
 - Manter numeração de artigos, parágrafos, incisos e alíneas exatamente como no original. Não "limpar" o texto além de remover cabeçalhos e rodapés de página repetidos e números de página.
-- Importação de PDF (`servicos/pdf.ts`): extrair texto com pdf.js, juntar linhas quebradas por largura de página quando a linha seguinte começar com minúscula, preservar quebras antes de "Art.", "§", "Parágrafo único", incisos romanos e alíneas. Sempre exibir o resultado para revisão antes de salvar; nunca salvar automaticamente.
+- Importação de PDF (`servicos/pdf.ts` + `dominio/limparPdf.ts`): pdf.js entrega os itens com posição e tamanho de fonte; o serviço agrupa em linhas e descarta texto rotacionado (carimbos laterais). `limparPaginas` fica só com o texto efetivo da norma: remove cabeçalho e rodapé (linhas nas margens repetidas entre páginas ou com cara de paginação, URL, e-mail), carimbos de assinatura eletrônica e autenticação (em qualquer região; se o carimbo vier colado ao fim de uma linha de texto, só o carimbo é cortado), e a página "Quadro de Assinaturas" inteira. Notas de rodapé (fonte menor, na base da página, iniciadas por número ou marcador) são preservadas ao fim do texto da página. `arrumarTexto` junta linhas quebradas pela largura da página, preservando quebras antes de "Art.", "§", "Parágrafo único", incisos, alíneas, títulos e capítulos. Heurísticas cobertas por `limparPdf.test.ts`; sempre exibir o resultado para revisão antes de salvar.
 - Colagem em lote: cada bloco separado por linha `===` vira uma norma; a primeira linha do bloco é o cabeçalho `Tipo | Número | Data | Ementa | Link`, o restante é o texto. Mesma regra: revisar antes de salvar.
+
+## Busca sem IA (`dominio/buscaLocal.ts`)
+
+A primeira parte de toda consulta não usa o modelo: o app divide cada norma em dispositivos (um por artigo; preâmbulo e blocos sem artigo por parágrafos), extrai os termos da pergunta (sem acentos, sem palavras vazias, reduzidos a radicais) e pontua cada dispositivo pela presença dos radicais no início de palavra, com bônus para cobrir todos os termos e para menção na ementa. Com dois ou mais termos, dispositivos que casam só um são descartados se houver melhores. Os 12 melhores são agrupados por norma, ordenados pela relevância do melhor trecho, com os termos realçados e link para ler a norma na íntegra. Funciona sem chave da API.
 
 ## Limite de volume enviado ao modelo
 
