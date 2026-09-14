@@ -62,12 +62,23 @@ APK de depuração: `cd android && ./gradlew assembleDebug` (saída em `android/
 - Negrito reservado a termos-chave (nome do tópico, nome do ato normativo).
 - Mensagens de commit: verbo no presente, uma linha objetiva, como no histórico (`Cadastra Resolução Normativa nº 074/2023 no acervo`).
 
-## Git
+## Git e entrega: commit, push e APK a cada mudança
 
+Toda mudança no código deste app é seguida, na mesma tarefa e sem esperar novo pedido, de três passos:
+
+1. `git add` dos arquivos alterados e `git commit` com mensagem no padrão do histórico.
+2. `git push origin main`.
+3. Geração do APK atualizado: `npm run build && npx cap sync android && cd android && ./gradlew assembleDebug`. Informar ao usuário o caminho do APK gerado (`android/app/build/outputs/apk/debug/app-debug.apk`) e enviá-lo com SendUserFile.
+
+Regras:
+
+- Vale para qualquer alteração em `src/`, `public/`, `android/`, `capacitor.config.ts`, `package.json`, `CLAUDE.md` e `_instrucoes/`. Para mudanças só em documentação (`CLAUDE.md`, `_instrucoes/`, `README.md`), executar os passos 1 e 2 e pular o APK.
+- Se o passo 3 não puder ser executado (projeto Capacitor ainda não criado, JDK 17 ou Android SDK ausentes, build quebrado), fazer mesmo assim o commit e o push e dizer explicitamente ao usuário que o APK não foi gerado e por quê. Nunca omitir a falha.
+- Se o build falhar por erro no código recém-alterado, corrigir antes de comitar; não comitar código que não compila.
 - Branch principal: `main`. Publicação web é feita a partir de `main`.
 - Não comitar: `node_modules/`, `dist/`, `android/app/build/`, `*.keystore`, `*.jks`, `.env*`, `Acervo/*.crdownload`, `.DS_Store`.
 - Comitar `android/` (projeto nativo gerado pelo Capacitor), exceto artefatos de build.
-- Só comitar ou dar push quando o usuário pedir.
+- Arquivos que já estavam sem versionamento antes da tarefa (hoje `Acervo/` e `worker/`) não entram no commit automático; só quando o usuário pedir.
 
 ## Quando você (Claude Code) responder sobre normas neste repositório
 
