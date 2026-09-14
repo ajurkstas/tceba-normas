@@ -1,38 +1,35 @@
 # Consulta às Normas do TCE/BA
 
-Aplicativo de página única (PWA) para consulta ao acervo normativo do TCE/BA, com a mesma regra de fidelidade documental do Projeto: resumo prático seguido da transcrição literal da norma aplicável, ou declaração expressa de ausência de regulamentação.
+Aplicativo Android (Capacitor) e web (React) para consulta ao acervo normativo do TCE/BA. A consulta por IA responde exclusivamente com base nos textos carregados no acervo: síntese prática seguida da transcrição literal da norma aplicável, ou declaração expressa de ausência de regulamentação.
 
-Publicado em: https://ajurkstas.github.io/tceba-normas/
+- Site: https://ajurkstas.github.io/tceba-normas/
+- APK mais recente: https://github.com/ajurkstas/tceba-normas/releases/tag/apk-latest (gerado automaticamente a cada push em `main`)
 
-## Arquivos
+## Como usar
 
-- `index.html` — aplicativo completo (interface, acervo e lógica de consulta)
-- `acervo.json` — acervo normativo **publicado**: o mesmo para qualquer pessoa que acesse o link
-- `manifest.json` — nome, ícone e cores para instalação como aplicativo
-- `sw.js` — service worker para carregar a interface offline
-- `logo-titulo.png` — imagem exibida no topo, no lugar do título escrito
-- `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` — ícones do aplicativo
+1. Instale o APK no Android (habilite "fontes desconhecidas") ou abra o site.
+2. Na aba **Ajustes**, informe sua chave da API da Anthropic (`sk-ant-...`). No Android ela fica em armazenamento cifrado do aparelho; no navegador, só até fechar a aba.
+3. Na aba **Consulta**, faça a pergunta. A resposta traz Síntese, Norma(s) aplicável(is) com transcrição literal e, se houver, Observação interpretativa.
+4. Na aba **Acervo**, cadastre, edite, importe ou exporte normas. Edições ficam como rascunho local até serem publicadas no repositório.
 
-## Como funciona o acervo (banco de dados único)
+## Desenvolvimento
 
-O acervo que qualquer visitante do link enxerga na aba Consulta vem do arquivo `acervo.json`, que faz parte deste repositório. É o mesmo arquivo para todo mundo — não existe um banco de dados por trás, nem cadastro individual por visitante.
+```bash
+npm install
+npm run dev          # web em http://localhost:5173
+npm test             # vitest
+npm run build        # dist/
+npm run apk          # build + cap sync + gradlew assembleDebug (exige JDK 17+ e Android SDK)
+```
 
-Alterações feitas na aba Acervo (Nova norma, Colagem em lote, Carregar PDF etc.) ficam salvas apenas **no navegador de quem está editando** (localStorage), como um rascunho local — a tela mostra um aviso "Rascunho local" enquanto isso. Nada disso é visível para outros visitantes automaticamente.
+Estrutura, regras de negócio e decisões técnicas estão em `CLAUDE.md` e em `_instrucoes/`.
 
-**Para publicar** as mudanças (isto é, atualizar o que todo mundo vê):
-1. Clique em "Exportar JSON" na aba Acervo para baixar o arquivo com o acervo atualizado.
-2. Peça para eu (Claude) substituir o `acervo.json` do repositório por esse conteúdo e publicar (`git commit` + `git push`).
+## Acervo publicado
 
-Esse fluxo é manual e propositalmente simples — evita depender de um banco de dados externo e de autenticação para separar "quem pode editar" de "quem só consulta".
+`public/acervo.json` é o acervo que todo usuário recebe. Para publicar alterações feitas no app: Exportar JSON na aba Acervo, substituir `public/acervo.json` no repositório e fazer commit. O push em `main` regenera o site e o APK.
 
-## Consulta por IA — só funciona dentro do Claude.ai (ainda)
+Fontes originais (PDF, ODT) ficam em `Acervo/`, apenas para conferência.
 
-A chamada que faz a pergunta à IA usa a API da Anthropic diretamente do navegador, sem chave de API. Isso só funciona **dentro do Claude.ai**, quando o `index.html` é aberto como artefato — o próprio Claude.ai intermedeia essa chamada.
+## Versão anterior
 
-No site publicado (GitHub Pages), essa chamada falha com erro de rede/CORS: o botão "Consultar" não vai retornar resposta nenhuma para quem acessar o link. Para a consulta por IA funcionar fora do Claude.ai, é necessário um pequeno backend próprio (por exemplo, uma função serverless) que guarde a chave de API da Anthropic e repasse a pergunta e o acervo para o modelo — isso ainda não foi implementado.
-
-O cadastro do acervo (Acervo, Colagem em lote, Importar/Exportar JSON, Carregar PDF) não depende da IA e funciona normalmente em qualquer um dos dois cenários.
-
-## Backup
-
-O botão "Exportar JSON" na aba Acervo salva todo o acervo cadastrado (publicado + rascunho local) em um arquivo, que pode ser reimportado depois pelo botão "Importar JSON" — inclusive em outro navegador ou instalação.
+A PWA em arquivo único (`index.html` sem build) e o proxy `worker/` (Cloudflare) foram substituídos por esta versão. O `worker/` permanece no repositório apenas como referência.

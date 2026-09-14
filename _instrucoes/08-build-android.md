@@ -46,7 +46,15 @@ Depois de `add`, revisar `android/app/src/main/AndroidManifest.xml`:
 
 Comitar a pasta `android/` inteira, exceto `android/app/build/`, `android/.gradle/`, `android/local.properties` e `android/build/`.
 
-## Ciclo de build
+## Build automático (GitHub Actions)
+
+`.github/workflows/apk.yml` roda a cada push em `main` (ignorando mudanças só de documentação) e em execução manual: instala Node 22 e JDK 21, roda testes, `npm run build`, `npx cap sync android` e `gradlew assembleDebug`, e publica o APK na release `apk-latest` do repositório (arquivo `normas-tceba-latest.apk` sempre atualizado, mais um arquivo com versão e hash do commit). Acompanhar com `gh run watch` ou `gh run list --workflow apk.yml`.
+
+`.github/workflows/pages.yml` publica `dist/` no GitHub Pages. O Pages do repositório está configurado para a fonte "GitHub Actions".
+
+O APK do workflow é assinado com a chave de depuração do runner; serve para instalação direta ("fontes desconhecidas"), não para loja. Para release assinado, ver abaixo.
+
+## Ciclo de build local
 
 ```bash
 npm run build

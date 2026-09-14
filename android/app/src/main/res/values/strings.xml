@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Normas TCE/BA</string>
+    <string name="title_activity_main">Normas TCE/BA</string>
+    <string name="package_name">br.com.jurkstas.normastceba</string>
+    <string name="custom_url_scheme">br.com.jurkstas.normastceba</string>
+</resources>

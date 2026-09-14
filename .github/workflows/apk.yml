@@ -1,0 +1,79 @@
+name: APK Android
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '_instrucoes/**'
+      - 'Acervo/**'
+      - 'worker/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Testes
+        run: npm test
+
+      - name: Build web
+        run: npm run build
+
+      - name: Sincronizar Capacitor
+        run: npx cap sync android
+
+      - name: Gerar APK (debug)
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+
+      - name: Renomear APK
+        id: apk
+        run: |
+          VERSAO=$(node -p "require('./package.json').version")
+          NOME="normas-tceba-${VERSAO}-${GITHUB_SHA::7}.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "$NOME"
+          echo "nome=$NOME" >> "$GITHUB_OUTPUT"
+          echo "versao=$VERSAO" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.nome }}
+          path: ${{ steps.apk.outputs.nome }}
+          retention-days: 30
+
+      - name: Publicar na release "apk-latest"
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOME="${{ steps.apk.outputs.nome }}"
+          cp "$NOME" normas-tceba-latest.apk
+          NOTAS="APK de depuração gerado automaticamente do commit ${GITHUB_SHA::7} (versão ${{ steps.apk.outputs.versao }}). Instale habilitando fontes desconhecidas no Android."
+          if gh release view apk-latest >/dev/null 2>&1; then
+            gh release upload apk-latest "$NOME" normas-tceba-latest.apk --clobber
+            gh release edit apk-latest --notes "$NOTAS" --title "APK mais recente"
+          else
+            gh release create apk-latest "$NOME" normas-tceba-latest.apk --title "APK mais recente" --notes "$NOTAS" --latest
+          fi

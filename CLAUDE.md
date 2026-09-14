@@ -17,13 +17,15 @@ Este arquivo é o ponto de entrada. As regras detalhadas ficam em `_instrucoes/`
 | `07-acervo-e-dados.md` | Ao alterar o esquema do acervo, o cadastro de normas, importação de PDF ou o fluxo de publicação. |
 | `08-build-android.md` | Ao gerar APK, configurar Capacitor, assinar release ou ajustar ícones e splash. |
 
-## Estado atual e direção
+## Estado atual
 
-- Versão em produção: `index.html` (PWA em arquivo único, sem build) publicado em GitHub Pages, com `acervo.json` como acervo publicado e `worker/` como proxy opcional da API.
-- Direção: migrar para React + TypeScript + Vite, empacotado com Capacitor para Android (APK), mantendo a versão web. Detalhes em `03-arquitetura-e-stack.md`. Até a migração terminar, `index.html` continua sendo a referência de comportamento e não deve ser quebrado.
-- A chave da API passa a ser informada pelo usuário na aba Ajustes, guardada em armazenamento seguro do dispositivo. Nenhuma chave no código, no repositório, em exportações ou em logs. Regras em `05-ajustes-e-chave-api.md`.
+- App React + TypeScript + Vite em `src/`, empacotado com Capacitor em `android/`. Três abas na barra inferior: Consulta, Acervo, Ajustes.
+- A chave da API é informada na aba Ajustes e guardada em armazenamento seguro do dispositivo (`src/servicos/chaveApi.ts`). Nenhuma chave no código, no repositório, em exportações ou em logs. Regras em `05-ajustes-e-chave-api.md`.
+- Acervo publicado em `public/acervo.json`; cópia local editável no dispositivo (`src/servicos/acervo.ts`).
+- Publicação: push em `main` dispara `.github/workflows/pages.yml` (site) e `.github/workflows/apk.yml` (APK na release `apk-latest`).
+- `worker/` é legado da versão anterior (proxy Cloudflare) e não é usado pelo app.
 
-## Stack (após a migração)
+## Stack
 
 - React 18 + TypeScript + Vite
 - Tailwind CSS (somente paleta padrão do Tailwind, sem cores customizadas)
@@ -68,12 +70,12 @@ Toda mudança no código deste app é seguida, na mesma tarefa e sem esperar nov
 
 1. `git add` dos arquivos alterados e `git commit` com mensagem no padrão do histórico.
 2. `git push origin main`.
-3. Geração do APK atualizado: `npm run build && npx cap sync android && cd android && ./gradlew assembleDebug`. Informar ao usuário o caminho do APK gerado (`android/app/build/outputs/apk/debug/app-debug.apk`) e enviá-lo com SendUserFile.
+3. Geração do APK atualizado. Localmente: `npm run apk` (exige JDK 17+ e Android SDK; saída em `android/app/build/outputs/apk/debug/app-debug.apk`), enviando o arquivo ao usuário com SendUserFile. Sem o toolchain local, o push em `main` já dispara `.github/workflows/apk.yml`, que publica o APK na release `apk-latest`; nesse caso, acompanhar a execução com `gh run watch` e informar ao usuário o link do APK quando concluir (ou a falha, com o trecho relevante do log).
 
 Regras:
 
 - Vale para qualquer alteração em `src/`, `public/`, `android/`, `capacitor.config.ts`, `package.json`, `CLAUDE.md` e `_instrucoes/`. Para mudanças só em documentação (`CLAUDE.md`, `_instrucoes/`, `README.md`), executar os passos 1 e 2 e pular o APK.
-- Se o passo 3 não puder ser executado (projeto Capacitor ainda não criado, JDK 17 ou Android SDK ausentes, build quebrado), fazer mesmo assim o commit e o push e dizer explicitamente ao usuário que o APK não foi gerado e por quê. Nunca omitir a falha.
+- Se nem o build local nem o workflow puderem gerar o APK (build quebrado, CI falhando), fazer mesmo assim o commit e o push e dizer explicitamente ao usuário que o APK não foi gerado e por quê. Nunca omitir a falha.
 - Se o build falhar por erro no código recém-alterado, corrigir antes de comitar; não comitar código que não compila.
 - Branch principal: `main`. Publicação web é feita a partir de `main`.
 - Não comitar: `node_modules/`, `dist/`, `android/app/build/`, `*.keystore`, `*.jks`, `.env*`, `Acervo/*.crdownload`, `.DS_Store`.
