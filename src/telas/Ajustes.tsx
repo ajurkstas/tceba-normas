@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowPathIcon, ArrowTopRightOnSquareIcon, CheckIcon, EyeIcon, EyeSlashIcon, ExclamationCircleIcon,
-  FingerPrintIcon, InformationCircleIcon, KeyIcon, LockClosedIcon, TrashIcon,
+  FingerPrintIcon, InformationCircleIcon, KeyIcon, LockClosedIcon, TrashIcon, WifiIcon,
 } from '@heroicons/react/24/outline';
-import type { Ajustes as TAjustes, ModeloId, Tema } from '../dominio/tipos';
+import type { Ajustes as TAjustes, ModeloId, TamanhoFonte, Tema, UsoTokens } from '../dominio/tipos';
 import { MODELOS } from '../dominio/tipos';
 import { chaveMascarada, gravarChave, lerChave, removerChave, validarFormato } from '../servicos/chaveApi';
 import { autenticar, estadoAutenticacao, type EstadoAutenticacao } from '../servicos/autenticacao';
-import { testarChave } from '../servicos/anthropic';
+import { testarChave, testarConectividade } from '../servicos/anthropic';
 import { protegerTela } from '../servicos/telaPrivada';
 import { NATIVO } from '../servicos/plataforma';
+import { resumirUso } from '../servicos/tokens';
 import { AreaTexto, Aviso, Botao, Cartao, Rotulo, Selecao, Titulo } from '../componentes/basicos';
 
 interface Props {
@@ -20,11 +21,13 @@ interface Props {
   versao: string;
   aoRestaurarAcervo: () => Promise<void>;
   aoLimparHistorico: () => Promise<void>;
+  usoTokens: UsoTokens[];
+  aoLimparUsoTokens: () => Promise<void>;
 }
 
 const SEGUNDOS_REVELADA = 30;
 
-export function Ajustes({ ajustes, aoMudarAjustes, temChave, aoMudarChave, versao, aoRestaurarAcervo, aoLimparHistorico }: Props) {
+export function Ajustes({ ajustes, aoMudarAjustes, temChave, aoMudarChave, versao, aoRestaurarAcervo, aoLimparHistorico, usoTokens, aoLimparUsoTokens }: Props) {
   const [mascarada, setMascarada] = useState<string | null>(null);
   const [revelada, setRevelada] = useState<string | null>(null);
   const [editandoChave, setEditandoChave] = useState(!temChave);
@@ -33,6 +36,10 @@ export function Ajustes({ ajustes, aoMudarAjustes, temChave, aoMudarChave, versa
   const [auth, setAuth] = useState<EstadoAutenticacao>({ disponivel: false, biometria: false });
   const [msg, setMsg] = useState<{ tom: 'erro' | 'sucesso' | 'atencao' | 'info'; texto: string } | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [testandoConectividade, setTestandoConectividade] = useState(false);
+  const [conectividade, setConectividade] = useState<{ ok: boolean; texto: string } | null>(null);
+
+  const resumoUso = useMemo(() => resumirUso(usoTokens), [usoTokens]);
 
   useEffect(() => {
     protegerTela(true);
@@ -84,6 +91,17 @@ export function Ajustes({ ajustes, aoMudarAjustes, temChave, aoMudarChave, versa
       setMsg({ tom: 'erro', texto: e instanceof Error ? e.message : 'Falha ao testar a chave.' });
     } finally {
       setOcupado(false);
+    }
+  }
+
+  async function testarConectividadeClick() {
+    setTestandoConectividade(true);
+    setConectividade(null);
+    try {
+      const r = await testarConectividade();
+      setConectividade({ ok: r.ok, texto: r.mensagem });
+    } finally {
+      setTestandoConectividade(false);
     }
   }
 
@@ -223,6 +241,58 @@ export function Ajustes({ ajustes, aoMudarAjustes, temChave, aoMudarChave, versa
           <option value="sistema">Seguir o sistema</option>
           <option value="escuro">Escuro</option>
         </Selecao>
+        <div className="mt-3">
+          <Rotulo htmlFor="tamanho-fonte">Tamanho da fonte</Rotulo>
+          <Selecao id="tamanho-fonte" value={ajustes.tamanhoFonte} onChange={(e) => aoMudarAjustes({ ...ajustes, tamanhoFonte: e.target.value as TamanhoFonte })}>
+            <option value="pequeno">Pequena</option>
+            <option value="normal">Normal</option>
+            <option value="grande">Grande</option>
+          </Selecao>
+          <p className="mt-1 text-xs text-slate-500">Afeta todo o aplicativo; útil para a leitura de texto normativo extenso.</p>
+        </div>
+      </Cartao>
+
+      <Cartao>
+        <Titulo icone={<WifiIcon className="h-6 w-6 text-amber-700 dark:text-amber-400" />}>Conectividade</Titulo>
+        <p className="text-sm text-slate-600 dark:text-slate-400">Verifica o alcance da rede até a Anthropic, sem avaliar se a chave configurada é válida.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Botao variante="secundario" pequeno onClick={testarConectividadeClick} disabled={testandoConectividade}>
+            <WifiIcon className="h-5 w-5" /> {testandoConectividade ? 'Testando' : 'Testar conectividade'}
+          </Botao>
+        </div>
+        {conectividade && (
+          <Aviso tom={conectividade.ok ? 'sucesso' : 'erro'} className="mt-3">{conectividade.texto}</Aviso>
+        )}
+      </Cartao>
+
+      <Cartao>
+        <Titulo>Uso de tokens (registro local)</Titulo>
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          Registrado apenas neste aparelho, para acompanhar sua própria cota na Anthropic. Nunca é enviado a nenhum servidor.
+        </p>
+        <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+          <div><dt className="text-xs text-slate-500">Consultas registradas</dt><dd className="font-mono">{resumoUso.totalConsultas}</dd></div>
+          <div><dt className="text-xs text-slate-500">Tokens de entrada</dt><dd className="font-mono">{resumoUso.totalEntrada.toLocaleString('pt-BR')}</dd></div>
+          <div><dt className="text-xs text-slate-500">Tokens de saída</dt><dd className="font-mono">{resumoUso.totalSaida.toLocaleString('pt-BR')}</dd></div>
+          <div><dt className="text-xs text-slate-500">Neste mês (entrada/saída)</dt><dd className="font-mono">{resumoUso.esteMes.entrada.toLocaleString('pt-BR')} / {resumoUso.esteMes.saida.toLocaleString('pt-BR')}</dd></div>
+        </dl>
+        {resumoUso.porModelo.length > 0 && (
+          <ul className="mt-3 space-y-1 font-mono text-xs text-slate-600 dark:text-slate-400">
+            {resumoUso.porModelo.map((m) => (
+              <li key={m.modelo} className="flex justify-between gap-2">
+                <span>{m.modelo}</span><span>{m.entrada.toLocaleString('pt-BR')} entrada / {m.saida.toLocaleString('pt-BR')} saída</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Botao
+          variante="secundario"
+          pequeno
+          className="mt-3"
+          onClick={async () => { if (window.confirm('Limpar o registro local de uso de tokens?')) { await aoLimparUsoTokens(); setMsg({ tom: 'sucesso', texto: 'Registro de uso limpo.' }); } }}
+        >
+          <TrashIcon className="h-5 w-5" /> Limpar registro
+        </Botao>
       </Cartao>
 
       <Cartao>

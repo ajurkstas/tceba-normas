@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
-  ArrowDownTrayIcon, ArrowTopRightOnSquareIcon, ArrowUpTrayIcon, ClipboardDocumentListIcon,
-  DocumentArrowUpIcon, DocumentTextIcon, PencilSquareIcon, PlusIcon, TrashIcon,
+  ArrowDownTrayIcon, ArrowTopRightOnSquareIcon, ArrowUpTrayIcon, ChartBarIcon, ClipboardDocumentListIcon,
+  DocumentArrowUpIcon, DocumentTextIcon, ExclamationTriangleIcon, PencilSquareIcon, PlusIcon, TrashIcon,
 } from '@heroicons/react/24/outline';
 import { PencilIcon } from '@heroicons/react/20/solid';
 import type { Norma, Situacao, TipoAto } from '../dominio/tipos';
 import { TIPOS_ATO } from '../dominio/tipos';
 import { codigoNorma, gerarId, normalizarTipo, ordenarNormas, PLURAIS, tituloNorma } from '../dominio/hierarquia';
 import { extrairMetadados } from '../dominio/metadadosNorma';
+import { calcularEstatisticas } from '../dominio/estatisticasAcervo';
+import { referenciaCruzadaQuebrada } from '../dominio/localizarNorma';
 import { exportarJSON, importarJSON, mesclar } from '../servicos/acervo';
 import { AreaTexto, Aviso, Botao, Campo, Rotulo, Selecao } from '../componentes/basicos';
 import { Modal } from '../componentes/Modal';
@@ -26,6 +28,8 @@ const VAZIA: Norma = { id: '', tipo: 'Resolução Normativa', numero: '', data: 
 
 export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarInicial, aoConsumirEditarInicial }: Props) {
   const [filtro, setFiltro] = useState('');
+  const [filtroTipo, setFiltroTipo] = useState<TipoAto | 'todos'>('todos');
+  const [filtroSituacao, setFiltroSituacao] = useState<Situacao | 'todas'>('todas');
   const [editando, setEditando] = useState<Norma | null>(null);
   const [lote, setLote] = useState<string | null>(null);
   const [mensagem, setMensagem] = useState<{ tom: 'erro' | 'sucesso' | 'atencao'; texto: string } | null>(null);
@@ -39,16 +43,26 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarIn
 
   const lista = useMemo(() => {
     const t = filtro.trim().toLowerCase();
-    const base = ordenarNormas(normas);
-    if (!t) return base;
-    return base.filter((n) => (n.tipo + ' ' + n.numero + ' ' + n.ementa + ' ' + n.texto).toLowerCase().includes(t));
-  }, [normas, filtro]);
+    let base = ordenarNormas(normas);
+    if (filtroTipo !== 'todos') base = base.filter((n) => n.tipo === filtroTipo);
+    if (filtroSituacao !== 'todas') base = base.filter((n) => n.status === filtroSituacao);
+    if (t) base = base.filter((n) => (n.tipo + ' ' + n.numero + ' ' + n.ementa + ' ' + n.texto).toLowerCase().includes(t));
+    return base;
+  }, [normas, filtro, filtroTipo, filtroSituacao]);
 
   const grupos = useMemo(() => {
     const m = new Map<TipoAto, Norma[]>();
     for (const n of lista) m.set(n.tipo, [...(m.get(n.tipo) ?? []), n]);
     return Array.from(m.entries());
   }, [lista]);
+
+  const referenciasQuebradas = useMemo(() => {
+    const s = new Set<string>();
+    for (const n of normas) if (referenciaCruzadaQuebrada(n, normas)) s.add(n.id);
+    return s;
+  }, [normas]);
+
+  const estatisticas = useMemo(() => calcularEstatisticas(normas), [normas]);
 
   async function salvarNorma() {
     if (!editando) return;
@@ -144,13 +158,45 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarIn
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Campo type="search" placeholder="Filtrar" value={filtro} onChange={(e) => setFiltro(e.target.value)} className="flex-1" />
+        <Campo type="search" placeholder="Filtrar por palavra-chave" value={filtro} onChange={(e) => setFiltro(e.target.value)} className="flex-1" />
         <Botao onClick={() => setEditando({ ...VAZIA })} aria-label="Nova norma" title="Nova norma" className="px-3"><PlusIcon className="h-5 w-5" /></Botao>
         <Botao variante="secundario" onClick={() => setLote('')} aria-label="Colagem em lote" title="Colagem em lote" className="px-3"><ClipboardDocumentListIcon className="h-5 w-5" /></Botao>
         <Botao variante="secundario" onClick={() => inputImport.current?.click()} aria-label="Importar JSON" title="Importar JSON" className="px-3"><ArrowUpTrayIcon className="h-5 w-5" /></Botao>
         <Botao variante="secundario" onClick={exportar} aria-label="Exportar JSON" title="Exportar JSON" className="px-3"><ArrowDownTrayIcon className="h-5 w-5" /></Botao>
         <input ref={inputImport} type="file" accept="application/json" className="hidden" onChange={importar} />
       </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Selecao aria-label="Filtrar por tipo" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value as TipoAto | 'todos')} className="flex-1">
+          <option value="todos">Todos os tipos</option>
+          {TIPOS_ATO.map((t) => <option key={t} value={t}>{PLURAIS[t]}</option>)}
+        </Selecao>
+        <Selecao aria-label="Filtrar por situação" value={filtroSituacao} onChange={(e) => setFiltroSituacao(e.target.value as Situacao | 'todas')} className="flex-1">
+          <option value="todas">Todas as situações</option>
+          <option value="vigente">Em vigor</option>
+          <option value="vigente_alteracoes">Vigente, com alterações</option>
+          <option value="revogada">Revogada</option>
+        </Selecao>
+      </div>
+
+      <details className="rounded border border-stone-300 bg-white dark:border-slate-700 dark:bg-slate-900">
+        <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium">
+          <ChartBarIcon className="h-5 w-5 text-slate-500" /> Estatísticas do acervo
+        </summary>
+        <div className="space-y-2 border-t border-stone-300 px-4 py-3 text-sm dark:border-slate-700">
+          <p className="text-slate-700 dark:text-stone-300">
+            {estatisticas.total} norma{estatisticas.total === 1 ? '' : 's'} no total.
+            {estatisticas.anoMaisAntigo && estatisticas.anoMaisRecente && (
+              <> Mais antiga de {estatisticas.anoMaisAntigo}; mais recente de {estatisticas.anoMaisRecente}.</>
+            )}
+          </p>
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-xs text-slate-600 dark:text-slate-400 sm:grid-cols-3">
+            {estatisticas.porTipo.map((g) => (
+              <li key={g.tipo} className="flex justify-between gap-2"><span>{PLURAIS[g.tipo]}</span><span>{g.quantidade}</span></li>
+            ))}
+          </ul>
+        </div>
+      </details>
 
       {rascunhoLocal && (
         <Aviso tom="atencao" icone={<PencilIcon className="h-5 w-5" />}>
@@ -186,6 +232,12 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarIn
                 </div>
                 <h4 className="mt-1 font-medium leading-snug">{tituloNorma(n)}</h4>
                 <p className="mt-0.5 text-xs text-slate-500">{n.data || 'sem data'}{n.obs ? ` · ${n.obs}` : ''}</p>
+                {referenciasQuebradas.has(n.id) && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-amber-800 dark:text-amber-300">
+                    <ExclamationTriangleIcon className="h-4 w-4 shrink-0" />
+                    Referência cruzada não encontrada: a norma indicada em "{n.obs}" não está cadastrada no acervo.
+                  </p>
+                )}
                 <div className="mt-1 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                   <Botao pequeno variante="fantasma" onClick={() => aoVisualizar(n)} aria-label="Ler na íntegra" title="Ler na íntegra"><DocumentTextIcon className="h-5 w-5" /></Botao>
                   <Botao pequeno variante="fantasma" onClick={() => setEditando({ ...n })} aria-label="Editar" title="Editar"><PencilSquareIcon className="h-5 w-5" /></Botao>

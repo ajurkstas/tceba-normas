@@ -1,12 +1,20 @@
-import type { Resposta } from '../dominio/tipos';
+import { ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid';
+import type { Norma, Resposta } from '../dominio/tipos';
 import { tomVigencia } from '../dominio/parserResposta';
+import { encontrarNormaReferida } from '../dominio/localizarNorma';
 import { Selo } from './Selo';
 
 function Rotulo({ children }: { children: string }) {
   return <div className="mb-1 font-mono text-xs uppercase tracking-wide text-amber-700 dark:text-amber-400">{children}</div>;
 }
 
-export function BlocoResposta({ resposta }: { resposta: Resposta }) {
+interface Props {
+  resposta: Resposta;
+  normas?: Norma[];
+  aoAbrirNorma?: (norma: Norma, foco?: string) => void;
+}
+
+export function BlocoResposta({ resposta, normas = [], aoAbrirNorma }: Props) {
   if (resposta.formato === 'invalido') {
     return (
       <div className="rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
@@ -37,15 +45,27 @@ export function BlocoResposta({ resposta }: { resposta: Resposta }) {
           <p className="whitespace-pre-wrap leading-relaxed">{resposta.sintese}</p>
         </div>
       )}
-      {resposta.normas.map((n, i) => (
-        <div key={i} className="rounded border border-stone-300 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-          <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-            <div className="font-mono text-xs uppercase tracking-wide text-slate-700 dark:text-slate-300">{n.fonte || 'Fonte não identificada'}</div>
-            {n.vigencia && <Selo tom={tomVigencia(n.vigencia)}>{n.vigencia}</Selo>}
+      {resposta.normas.map((n, i) => {
+        const normaAlvo = aoAbrirNorma ? encontrarNormaReferida(normas, n.fonte) : undefined;
+        return (
+          <div key={i} className="rounded border border-stone-300 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+            <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+              <div className="font-mono text-xs uppercase tracking-wide text-slate-700 dark:text-slate-300">{n.fonte || 'Fonte não identificada'}</div>
+              {n.vigencia && <Selo tom={tomVigencia(n.vigencia)}>{n.vigencia}</Selo>}
+            </div>
+            <pre className="whitespace-pre-wrap font-serif text-base leading-relaxed text-slate-900 dark:text-stone-100">{n.texto}</pre>
+            {normaAlvo && (
+              <button
+                type="button"
+                onClick={() => aoAbrirNorma!(normaAlvo, n.fonte)}
+                className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-amber-700 underline-offset-2 hover:underline dark:text-amber-400"
+              >
+                Ver no dispositivo, na norma completa <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
-          <pre className="whitespace-pre-wrap font-serif text-base leading-relaxed text-slate-900 dark:text-stone-100">{n.texto}</pre>
-        </div>
-      ))}
+        );
+      })}
       {resposta.observacao && (
         <div className="rounded border border-slate-300 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
           <Rotulo>Observação interpretativa (não normativa)</Rotulo>

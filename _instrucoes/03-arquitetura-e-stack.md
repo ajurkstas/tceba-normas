@@ -40,12 +40,17 @@ tceba-normas/
 │   │   ├── hierarquia.ts      # ordem dos tipos de ato, abreviações, rótulos
 │   │   ├── promptSistema.ts   # PROMPT_SISTEMA (texto de 02)
 │   │   ├── montarCorpoAcervo.ts
-│   │   └── parserResposta.ts
+│   │   ├── parserResposta.ts
+│   │   ├── estruturaNorma.ts  # leitor da norma + localização de dispositivo citado
+│   │   ├── localizarNorma.ts  # casa citação/obs com norma do acervo (tipo + número)
+│   │   ├── formatarResposta.ts
+│   │   └── estatisticasAcervo.ts
 │   ├── servicos/              # fronteira com o mundo externo
 │   │   ├── anthropic.ts       # cliente, consulta com streaming, mapeamento de erros
 │   │   ├── acervo.ts          # carregar/salvar/exportar/importar acervo
 │   │   ├── historico.ts
-│   │   ├── ajustes.ts         # preferências não sensíveis (modelo, tema)
+│   │   ├── tokens.ts          # registro local de uso de tokens (nunca remoto)
+│   │   ├── ajustes.ts         # preferências não sensíveis (modelo, tema, tamanho de fonte)
 │   │   ├── chaveApi.ts        # única porta de acesso à chave (secure storage)
 │   │   ├── voltar.ts          # pilha de fechamento para o botão voltar do Android
 │   │   └── pdf.ts

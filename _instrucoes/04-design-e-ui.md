@@ -77,6 +77,12 @@ Importar de `@heroicons/react/24/outline` para navegação e ações, `@heroicon
 | Erro | `ExclamationCircleIcon` |
 | Fechar | `XMarkIcon` |
 | Ajuda | `InformationCircleIcon` |
+| Copiar resposta | `ClipboardDocumentIcon` |
+| Compartilhar resposta | `ShareIcon` |
+| Nova consulta (limpar contexto) | `ArrowPathIcon` |
+| Estatísticas do acervo | `ChartBarIcon` |
+| Referência cruzada quebrada | `ExclamationTriangleIcon` |
+| Conectividade | `WifiIcon` |
 
 Tamanho padrão: `h-6 w-6` na navegação, `h-5 w-5` em botões, `h-4 w-4` em selos.
 
@@ -85,8 +91,12 @@ Tamanho padrão: `h-6 w-6` na navegação, `h-5 w-5` em botões, `h-4 w-4` em se
 ### Consulta
 - Logo no topo (`logo-titulo.png`), sem título escrito.
 - Texto de apresentação curto explicando que a resposta se baseia apenas no acervo carregado.
+- Atalhos de perguntas frequentes (diárias, licitação, prazo recursal, afastamento): botões em pílula acima do campo de pergunta; ao tocar, preenchem a pergunta e disparam a busca no acervo (sem IA).
 - Campo de pergunta (textarea, 3 a 6 linhas) e dois botões: "Buscar no acervo" (secundário, `MagnifyingGlassIcon`; funciona sem chave) e "Buscar e consultar IA" (primário, `SparklesIcon`; desabilitado sem chave, com link para Ajustes). Durante a consulta, o botão primário vira "Cancelar" (`StopIcon`).
+- Contexto de conversa: perguntas de acompanhamento na mesma sessão (ex.: "e no caso de férias?") entram como turnos anteriores na chamada à IA, sem repetir o acervo (ver `06`). Enquanto há contexto ativo, um aviso mostra quantas perguntas anteriores estão na sessão, com botão "Nova consulta (limpar contexto)" (`ArrowPathIcon`) para reiniciar.
 - Resposta em duas seções, nesta ordem: "Normas relacionadas no acervo (busca sem IA)", com os dispositivos encontrados e termos realçados em `mark` `amber-100`; e "Resposta objetiva (gerada por IA a partir do acervo)", com os blocos de `02`.
+- Cada bloco `NORMA` da resposta traz um link "Ver no dispositivo, na norma completa" (quando a norma citada é localizada no acervo pelo tipo e número da linha FONTE) que abre o `VisualizadorNorma` já rolado e com destaque temporário no artigo, parágrafo, inciso ou alínea citado.
+- Botões "Copiar" (`ClipboardDocumentIcon`) e "Compartilhar" (`ShareIcon`) na resposta da IA: copiam ou compartilham a resposta formatada como texto simples, para juntar a processo administrativo.
 - Estado de carregamento com a frase "Percorrendo o acervo carregado" e, com streaming, a resposta aparece progressivamente.
 - Aviso quando o acervo foi pré-selecionado por volume.
 - Blocos de resposta conforme `02-prompt-de-sistema.md`.
@@ -96,9 +106,12 @@ Tamanho padrão: `h-6 w-6` na navegação, `h-5 w-5` em botões, `h-4 w-4` em se
 - Rodapé com o aviso de sistema não oficial e autoria.
 
 ### Acervo
-- Barra superior: campo de filtro e quatro botões só com ícone (`aria-label` e `title`): Nova norma, Colagem em lote, Importar JSON, Exportar JSON.
+- Barra superior: campo de filtro por palavra-chave e quatro botões só com ícone (`aria-label` e `title`): Nova norma, Colagem em lote, Importar JSON, Exportar JSON.
+- Abaixo da barra, dois seletores lado a lado: filtro por tipo de ato (`PLURAIS`, mais "Todos os tipos") e por situação (em vigor, vigente com alterações, revogada, mais "Todas as situações"); combinam com o filtro por palavra-chave.
+- Painel retrátil "Estatísticas do acervo" (`ChartBarIcon`, `dominio/estatisticasAcervo.ts`): total de normas, quantidade por tipo e ano da norma mais antiga e da mais recente, para perceber se o acervo está defasado.
 - Lista de normas agrupadas por tipo, na ordem de hierarquia (`hierarquia.ts`), com o rótulo do grupo no plural quando cabem vários atos (`PLURAIS`: "Resoluções Normativas", "Instruções Normativas", "Súmulas").
 - Cartão enxuto: código (`LO-005/1991`) e selo de situação; título curto derivado da ementa (`tituloNorma`, que retira "Aprova o", "Dispõe sobre a", o aparte "no âmbito do Tribunal..." e "e dá outras providências"); linha com data e observação; e três ações só com ícone (ler na íntegra, editar, fonte oficial). Sem trecho do texto.
+- Alerta de referência cruzada quebrada (`ExclamationTriangleIcon`, `dominio/localizarNorma.ts`): quando o campo `obs` menciona revogação ou alteração por outra norma e essa norma não é encontrada no acervo pelo tipo e número, o cartão exibe um aviso discreto abaixo da observação.
 - Aviso "Rascunho local" enquanto houver edições não publicadas.
 - Toque no cartão abre o leitor de tela inteira (`VisualizadorNorma`): barra superior apenas com X, código da norma e botão Editar. Corpo no padrão dos textos legais do Planalto (`dominio/estruturaNorma.ts`): fonte serifada, título centralizado, ementa recuada à direita, um parágrafo separado para cada "CONSIDERANDO", artigos e parágrafos como texto comum com recuo de primeira linha, incisos e alíneas recuados com barra lateral (sem aspas), e divisões (Título, Capítulo, Seção, Subseção) como `<details open>` retráteis, aninhadas e abertas ao abrir a norma. Fecha com X, Escape ou botão voltar do Android (`servicos/voltar.ts`).
 - Modal de norma: botão "Carregar PDF da norma" no topo; ao carregar, o texto é transcrito e `dominio/metadadosNorma.ts` preenche tipo (se norma nova), número no formato `000/0000`, data de aprovação, ementa e situação (vigente, ou vigente com alterações quando o texto traz marcas de consolidação), sempre para revisão; o link fica manual. Demais campos: tipo, número, data, situação, ementa, norma revogadora ou modificadora, link, texto integral.
@@ -107,7 +120,9 @@ Tamanho padrão: `h-6 w-6` na navegação, `h-5 w-5` em botões, `h-4 w-4` em se
 ### Ajustes
 Ver `05-ajustes-e-chave-api.md` para o bloco da chave. Demais itens:
 - Modelo (seleção entre os modelos permitidos em `06`).
-- Tema: sistema, claro, escuro.
+- Aparência: tema (sistema, claro, escuro) e tamanho da fonte (pequena, normal, grande); o tamanho ajusta o `font-size` da raiz do documento (`servicos/ajustes.ts`, `aplicarTamanhoFonte`), afetando todo o aplicativo, para leitura de texto normativo extenso.
+- Conectividade (`WifiIcon`): "Testar conectividade" verifica só o alcance da rede até a Anthropic (`testarConectividade`, `06`), sem avaliar se a chave configurada é válida; distinto do "Testar chave" do bloco da chave.
+- Uso de tokens (registro local, nunca remoto): total de consultas, tokens de entrada e saída, uso do mês corrente e por modelo, com "Limpar registro". Gravado em `Preferences` por `servicos/tokens.ts`, nunca a chave nem o texto da pergunta ou resposta.
 - Dados: "Restaurar acervo publicado" (descarta rascunho local, com confirmação), "Limpar histórico".
 - Sobre: versão do app, aviso de sistema não oficial, link do repositório.
 

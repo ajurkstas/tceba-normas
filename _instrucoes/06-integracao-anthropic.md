@@ -49,6 +49,10 @@ const stream = cliente.messages.stream({
 - Não usar prefill de mensagem `assistant`: rejeitado nos modelos atuais.
 - Não usar `temperature`: removido nos modelos atuais.
 
+## Contexto de conversa (perguntas de acompanhamento)
+
+A tela Consulta mantém, em memória (estado React, nunca persistido além do histórico normal), os turnos já respondidos pela IA na sessão atual: pergunta e texto bruto da resposta. A cada nova consulta, `consultar` (`servicos/anthropic.ts`) monta `messages` com esses turnos anteriores (até `MAX_TURNOS_CONTEXTO`, hoje 6) intercalando `user`/`assistant`, seguidos da pergunta atual, permitindo "e no caso de férias?" sem repetir o contexto por escrito. O `system` (prompt e acervo cacheado) não muda: a regra de fidelidade documental e o acervo disponível são os mesmos em toda pergunta da sessão, só o histórico de mensagens cresce. Reiniciar a consulta ("Nova consulta") limpa o contexto do lado do app; a API não guarda estado entre chamadas.
+
 ## Cache do acervo
 
 O acervo serializado não muda entre consultas e é grande (o Regimento Interno sozinho passa de 170 mil caracteres). Ele vai no `system` como segundo bloco com `cache_control`, depois de `PROMPT_SISTEMA`, e antes da pergunta. Isso faz as consultas seguintes ao mesmo acervo pagarem só a leitura do cache. Regras para o cache funcionar:
@@ -79,6 +83,10 @@ Se `stop_reason` for `refusal`, exibir "O modelo recusou processar esta consulta
 ## Teste de chave (Ajustes)
 
 `testarChave(chave)` cria o cliente e chama `messages.create` com `model: "claude-haiku-4-5"`, `max_tokens: 16`, mensagem "ok", sem `system`. Retorna sucesso ou o erro mapeado pela tabela acima. Não usa streaming e não passa pelo acervo.
+
+## Teste de conectividade (Ajustes)
+
+`testarConectividade()` verifica só o alcance da rede até a Anthropic, sem avaliar se a chave é válida (isso é `testarChave`, acima). Usa a chave configurada, ou uma string qualquer no formato esperado quando não há chave (o pedido falha por autenticação, mas isso já prova que o servidor foi alcançado). Chama `cliente.models.list({ limit: 1 })`; qualquer resposta HTTP da API, mesmo erro de autenticação, conta como "conectado". Só `APIConnectionError` e `APIConnectionTimeoutError` (mapeados para os códigos `conexao` e `tempo`) contam como sem conexão. Nunca usa `fetch` manual, pelo mesmo motivo do restante desta integração.
 
 ## O que não fazer
 

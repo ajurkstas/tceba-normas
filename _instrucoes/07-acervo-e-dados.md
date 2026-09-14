@@ -94,6 +94,12 @@ Revisar esse limite quando a conta do usuário tiver janela de contexto de 1M to
 - Exportar: arquivo `acervo-tceba-AAAA-MM-DD.json`, array de `Norma`, indentação 2, UTF-8. No Android, gravar em `Directory.Documents` via Filesystem e oferecer compartilhamento (`@capacitor/share`). Nunca incluir histórico, ajustes ou chave.
 - Importar: aceitar array de `Norma` ou objeto `{ normas: Norma[] }` (compatibilidade). Validar campos obrigatórios (`tipo`, `texto`); normalizar `tipo` antigo; ignorar chaves desconhecidas. Perguntar se substitui ou mescla; ao mesclar, o `id` decide a colisão.
 
+## Estatísticas e referências cruzadas
+
+`dominio/estatisticasAcervo.ts` calcula, a partir da lista de normas em memória (sem gravar nada), o total por tipo e o ano da norma mais antiga e da mais recente (extraído do número `nnn/aaaa` ou, na falta, da data de aprovação); exibido no painel retrátil "Estatísticas do acervo" da aba Acervo.
+
+`dominio/localizarNorma.ts` casa um texto livre (a linha `FONTE` de uma norma citada pela IA, ou o campo `obs` de um registro do acervo) contra tipo e número normativo, para: (a) na tela Consulta, linkar cada dispositivo citado ao ponto exato no `VisualizadorNorma` (ver `04`, `06`); (b) na aba Acervo, sinalizar quando `obs` menciona revogação ou alteração por outra norma que não está cadastrada no acervo (`referenciaCruzadaQuebrada`). Exige tipo e número explícitos no texto; menção vaga ("norma posterior") não é tratada como referência quebrada, para não gerar falsos positivos.
+
 ## Histórico
 
 Últimas 30 consultas em `Preferences` (`tce-historico`): `{ pergunta, resposta (texto bruto do modelo), modelo, quando (ISO) }`. Exibir 15. Nunca gravar a chave, o `usage` ou o corpo do acervo.

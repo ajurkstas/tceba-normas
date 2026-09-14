@@ -1,10 +1,15 @@
 // Consulta ao modelo. Ver _instrucoes/06-integracao-anthropic.md.
 import Anthropic from '@anthropic-ai/sdk';
-import type { Message, MessageCreateParamsNonStreaming, TextBlockParam } from '@anthropic-ai/sdk/resources/messages';
-import type { ModeloId, Norma } from '../dominio/tipos';
+import type { Message, MessageCreateParamsNonStreaming, MessageParam, TextBlockParam } from '@anthropic-ai/sdk/resources/messages';
+import type { ModeloId, Norma, TurnoConversa } from '../dominio/tipos';
 import { PROMPT_SISTEMA } from '../dominio/promptSistema';
 import { montarCorpoAcervo } from '../dominio/montarCorpoAcervo';
 import { lerChave } from './chaveApi';
+
+// Quantos turnos anteriores entram como contexto de acompanhamento na mesma
+// sessão (ex.: "e no caso de férias?" depois de uma pergunta sobre afastamento).
+// Limitado para não fazer o custo da consulta crescer sem controle.
+const MAX_TURNOS_CONTEXTO = 6;
 
 export class ErroConsulta extends Error {
   constructor(mensagem: string, public readonly codigo: string, public readonly detalhes?: string) {
@@ -61,9 +66,28 @@ export interface ResultadoConsulta {
   enviadas: number;
   total: number;
   preSelecionado: boolean;
+  entrada: number;
+  saida: number;
+  cacheLeitura: number;
+  cacheEscrita: number;
 }
 
-function montarParametros(modelo: ModeloId, corpoAcervo: string, pergunta: string): MessageCreateParamsNonStreaming {
+// Mensagens da sessão: os turnos anteriores da mesma conversa (perguntas de
+// acompanhamento, ex.: "e no caso de férias?"), seguidos da pergunta atual.
+// O acervo e a regra de fidelidade documental continuam fixos no `system`,
+// cacheados; o contexto entra só em `messages`.
+function montarMensagens(contexto: TurnoConversa[], pergunta: string): MessageParam[] {
+  const recentes = contexto.slice(-MAX_TURNOS_CONTEXTO);
+  const mensagens: MessageParam[] = [];
+  for (const t of recentes) {
+    mensagens.push({ role: 'user', content: `PERGUNTA:\n${t.pergunta}` });
+    mensagens.push({ role: 'assistant', content: t.resposta });
+  }
+  mensagens.push({ role: 'user', content: `PERGUNTA:\n${pergunta}` });
+  return mensagens;
+}
+
+function montarParametros(modelo: ModeloId, corpoAcervo: string, pergunta: string, contexto: TurnoConversa[]): MessageCreateParamsNonStreaming {
   const system: TextBlockParam[] = [
     { type: 'text', text: PROMPT_SISTEMA },
     { type: 'text', text: corpoAcervo, cache_control: { type: 'ephemeral' } },
@@ -74,7 +98,7 @@ function montarParametros(modelo: ModeloId, corpoAcervo: string, pergunta: strin
     max_tokens: 8000,
     ...(suportaEsforco ? { thinking: { type: 'adaptive' }, output_config: { effort: 'high' } } : {}),
     system,
-    messages: [{ role: 'user', content: `PERGUNTA:\n${pergunta}` }],
+    messages: montarMensagens(contexto, pergunta),
   };
 }
 
@@ -88,13 +112,14 @@ export async function consultar(
   modelo: ModeloId,
   aoReceberTexto: (parcial: string) => void,
   sinal?: AbortSignal,
+  contexto: TurnoConversa[] = [],
 ): Promise<ResultadoConsulta> {
   const chave = await lerChave();
   if (!chave) throw new ErroConsulta('Configure sua chave da API em Ajustes para consultar.', ERRO_SEM_CHAVE);
 
   const corpo = montarCorpoAcervo(normas, pergunta);
   const cliente = criarCliente(chave);
-  const params = montarParametros(modelo, corpo.texto, pergunta);
+  const params = montarParametros(modelo, corpo.texto, pergunta, contexto);
 
   let final: Message;
   try {
@@ -140,6 +165,10 @@ export async function consultar(
     enviadas: corpo.enviadas,
     total: corpo.total,
     preSelecionado: corpo.preSelecionado,
+    entrada: final.usage.input_tokens,
+    saida: final.usage.output_tokens,
+    cacheLeitura: final.usage.cache_read_input_tokens ?? 0,
+    cacheEscrita: final.usage.cache_creation_input_tokens ?? 0,
   };
 }
 
@@ -153,5 +182,29 @@ export async function testarChave(chave: string): Promise<void> {
     });
   } catch (e) {
     throw mapearErro(e);
+  }
+}
+
+export interface ResultadoConectividade {
+  ok: boolean;
+  mensagem: string;
+}
+
+// Testa só o alcance da rede até a Anthropic, sem avaliar se a chave configurada
+// é válida (isso é `testarChave`). Qualquer resposta HTTP da API, mesmo de erro
+// de autenticação, conta como "conectado"; só falhas de rede ou tempo contam
+// como sem conexão.
+export async function testarConectividade(): Promise<ResultadoConectividade> {
+  const chave = (await lerChave()) ?? 'sk-ant-teste-conectividade';
+  const cliente = criarCliente(chave);
+  try {
+    await cliente.models.list({ limit: 1 });
+    return { ok: true, mensagem: 'Conectado à Anthropic.' };
+  } catch (e) {
+    const erro = mapearErro(e);
+    if (erro.codigo === 'conexao' || erro.codigo === 'tempo') {
+      return { ok: false, mensagem: erro.message };
+    }
+    return { ok: true, mensagem: 'Conectado à Anthropic (servidor respondeu).' };
   }
 }

@@ -125,3 +125,87 @@ export function estruturarTexto(texto: string, ementa = ''): Bloco[] {
   }
   return raiz;
 }
+
+// Localização de um dispositivo citado (art., §, inciso, alínea) dentro do texto já
+// estruturado, para abrir o leitor com o trecho correspondente em foco. Aproximado:
+// quando o nível mais específico não é encontrado, recua para o artigo.
+
+export interface IdentificadorDispositivo {
+  artigo?: number;
+  paragrafo?: number;
+  paragrafoUnico?: boolean;
+  inciso?: string;
+  alinea?: string;
+}
+
+const RE_ID_ARTIGO = /art\.?\s*0*(\d+)/i;
+const RE_ID_PARAGRAFO_UNICO = /par[aá]grafo\s+[uú]nico/i;
+const RE_ID_PARAGRAFO = /§\s*0*(\d+)/;
+const RE_ID_INCISO = /inciso\s+([ivxlcdm]+)\b/i;
+const RE_ID_ALINEA = /al[ií]nea\s+["'“”]?([a-z])["'”]?/i;
+const RE_INICIO_INCISO = /^([ivxlcdm]+|[a-z])\s*[-–.)]/i;
+
+// Extrai, do texto de uma citação (a linha FONTE de uma norma citada pela IA),
+// qual artigo, parágrafo, inciso ou alínea foi mencionado.
+export function extrairIdentificadorDispositivo(texto: string): IdentificadorDispositivo | null {
+  if (!texto) return null;
+  const artigo = texto.match(RE_ID_ARTIGO);
+  const paragrafo = texto.match(RE_ID_PARAGRAFO);
+  const unico = RE_ID_PARAGRAFO_UNICO.test(texto);
+  const inciso = texto.match(RE_ID_INCISO);
+  const alinea = texto.match(RE_ID_ALINEA);
+  if (!artigo && !paragrafo && !unico && !inciso && !alinea) return null;
+  return {
+    artigo: artigo ? Number(artigo[1]) : undefined,
+    paragrafo: paragrafo ? Number(paragrafo[1]) : undefined,
+    paragrafoUnico: unico || undefined,
+    inciso: inciso ? inciso[1].toUpperCase() : undefined,
+    alinea: alinea ? alinea[1].toLowerCase() : undefined,
+  };
+}
+
+function folhas(blocos: Bloco[]): BlocoTexto[] {
+  const out: BlocoTexto[] = [];
+  for (const b of blocos) out.push(...(b.tipo === 'divisao' ? folhas(b.filhos) : [b]));
+  return out;
+}
+
+function ehParagrafoUnico(texto: string): boolean {
+  return RE_ID_PARAGRAFO_UNICO.test(texto);
+}
+
+// Índice, na sequência de blocos de texto em ordem de leitura (a mesma ordem em
+// que `estruturarTexto` os produz, atravessando as divisões), do dispositivo
+// identificado. `null` quando o artigo pedido não é encontrado no texto.
+export function localizarDispositivo(blocos: Bloco[], identificador: IdentificadorDispositivo): number | null {
+  const lista = folhas(blocos);
+  let inicio = 0;
+  let alvo: number | null = null;
+
+  if (identificador.artigo !== undefined) {
+    const i = lista.findIndex((b) => b.tipo === 'artigo' && Number(b.texto.match(RE_ID_ARTIGO)?.[1]) === identificador.artigo);
+    if (i === -1) return null;
+    inicio = i;
+    alvo = i;
+  }
+
+  let fim = lista.length;
+  for (let i = inicio + 1; i < lista.length; i++) {
+    if (lista[i].tipo === 'artigo') { fim = i; break; }
+  }
+
+  if (identificador.paragrafo !== undefined || identificador.paragrafoUnico) {
+    const i = lista.findIndex((b, idx) => idx >= inicio && idx < fim && b.tipo === 'paragrafo' && (
+      identificador.paragrafoUnico ? ehParagrafoUnico(b.texto) : Number(b.texto.match(RE_ID_PARAGRAFO)?.[1]) === identificador.paragrafo
+    ));
+    if (i !== -1) alvo = i;
+  }
+
+  if (identificador.inciso || identificador.alinea) {
+    const letra = (identificador.inciso ?? identificador.alinea)!.toUpperCase();
+    const i = lista.findIndex((b, idx) => idx >= inicio && idx < fim && b.tipo === 'inciso' && b.texto.match(RE_INICIO_INCISO)?.[1].toUpperCase() === letra);
+    if (i !== -1) alvo = i;
+  }
+
+  return alvo;
+}

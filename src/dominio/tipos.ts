@@ -61,10 +61,29 @@ export const MODELO_PADRAO: ModeloId = 'claude-opus-5';
 
 export type Tema = 'sistema' | 'claro' | 'escuro';
 
+export type TamanhoFonte = 'pequeno' | 'normal' | 'grande';
+
 export interface Ajustes {
   modelo: ModeloId;
   tema: Tema;
+  tamanhoFonte: TamanhoFonte;
 }
 
 // Tema claro por padrão; o usuário pode escolher seguir o sistema ou escuro em Ajustes.
-export const AJUSTES_PADRAO: Ajustes = { modelo: MODELO_PADRAO, tema: 'claro' };
+export const AJUSTES_PADRAO: Ajustes = { modelo: MODELO_PADRAO, tema: 'claro', tamanhoFonte: 'normal' };
+
+// Um turno da conversa em uma sessão de consulta (contexto entre perguntas de acompanhamento).
+export interface TurnoConversa {
+  pergunta: string;
+  resposta: string; // texto bruto do modelo, no formato dos marcadores
+}
+
+// Uso de tokens de uma consulta à IA, para registro local (nunca remoto).
+export interface UsoTokens {
+  quando: string; // ISO
+  modelo: string;
+  entrada: number;
+  saida: number;
+  cacheLeitura: number;
+  cacheEscrita: number;
+}

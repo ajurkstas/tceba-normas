@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
-import type { Ajustes as TAjustes, ItemHistorico, Norma } from './dominio/tipos';
+import type { Ajustes as TAjustes, ItemHistorico, Norma, UsoTokens } from './dominio/tipos';
 import { AJUSTES_PADRAO } from './dominio/tipos';
 import { carregarAcervo, restaurarPublicado, salvarAcervo } from './servicos/acervo';
 import { carregarHistorico, limparHistorico, salvarHistorico } from './servicos/historico';
-import { aplicarTema, carregarAjustes, salvarAjustes } from './servicos/ajustes';
+import { aplicarTamanhoFonte, aplicarTema, carregarAjustes, salvarAjustes } from './servicos/ajustes';
 import { temChave as verificarChave } from './servicos/chaveApi';
+import { carregarUso, limparUso, registrarUso } from './servicos/tokens';
 import { NATIVO } from './servicos/plataforma';
 import { executarVoltar } from './servicos/voltar';
 import { BarraAbas, type Aba } from './componentes/BarraAbas';
@@ -26,19 +27,23 @@ export function App() {
   const [avisoInicial, setAvisoInicial] = useState<string | null>(null);
   const [versao, setVersao] = useState(__VERSAO_APP__);
   const [visualizando, setVisualizando] = useState<Norma | null>(null);
+  const [focoVisualizando, setFocoVisualizando] = useState<string | undefined>(undefined);
   const [editarAoFechar, setEditarAoFechar] = useState<Norma | null>(null);
+  const [usoTokens, setUsoTokens] = useState<UsoTokens[]>([]);
 
   useEffect(() => {
     (async () => {
       const a = await carregarAjustes();
       setAjustes(a);
       aplicarTema(a.tema);
+      aplicarTamanhoFonte(a.tamanhoFonte);
       const acervo = await carregarAcervo();
       setNormas(acervo.normas);
       setRascunho(acervo.rascunhoLocal);
       if (acervo.atualizadoAutomaticamente) setAvisoInicial('O acervo publicado foi atualizado nesta versão do aplicativo.');
       setHistorico(await carregarHistorico());
       setTemChave(await verificarChave());
+      setUsoTokens(await carregarUso());
       if (NATIVO) {
         try { setVersao((await CapApp.getInfo()).version); } catch { /* mantém a versão do build */ }
       }
@@ -88,7 +93,22 @@ export function App() {
   const mudarAjustes = useCallback((a: TAjustes) => {
     setAjustes(a);
     aplicarTema(a.tema);
+    aplicarTamanhoFonte(a.tamanhoFonte);
     salvarAjustes(a);
+  }, []);
+
+  const abrirNorma = useCallback((n: Norma, foco?: string) => {
+    setVisualizando(n);
+    setFocoVisualizando(foco);
+  }, []);
+
+  const registrarUsoTokens = useCallback(async (uso: UsoTokens) => {
+    setUsoTokens(await registrarUso(uso));
+  }, []);
+
+  const limparUsoTokens = useCallback(async () => {
+    await limparUso();
+    setUsoTokens([]);
   }, []);
 
   if (!pronto) {
@@ -99,10 +119,19 @@ export function App() {
     <div className="mx-auto min-h-screen max-w-3xl px-4 pb-24 pt-4">
       {avisoInicial && <Aviso tom="info" className="mb-4">{avisoInicial}</Aviso>}
       {aba === 'consulta' && (
-        <Consulta normas={normas} modelo={ajustes.modelo} temChave={temChave} historico={historico} aoRegistrar={registrarHistorico} irParaAjustes={() => setAba('ajustes')} aoVisualizar={setVisualizando} />
+        <Consulta
+          normas={normas}
+          modelo={ajustes.modelo}
+          temChave={temChave}
+          historico={historico}
+          aoRegistrar={registrarHistorico}
+          aoRegistrarUso={registrarUsoTokens}
+          irParaAjustes={() => setAba('ajustes')}
+          aoVisualizar={abrirNorma}
+        />
       )}
       {aba === 'acervo' && (
-        <Acervo normas={normas} rascunhoLocal={rascunho} aoSalvar={salvarNormas} aoVisualizar={setVisualizando} editarInicial={editarAoFechar} aoConsumirEditarInicial={() => setEditarAoFechar(null)} />
+        <Acervo normas={normas} rascunhoLocal={rascunho} aoSalvar={salvarNormas} aoVisualizar={abrirNorma} editarInicial={editarAoFechar} aoConsumirEditarInicial={() => setEditarAoFechar(null)} />
       )}
       {aba === 'ajustes' && (
         <Ajustes
@@ -113,14 +142,17 @@ export function App() {
           versao={versao}
           aoRestaurarAcervo={async () => { setNormas(await restaurarPublicado()); setRascunho(false); }}
           aoLimparHistorico={async () => { await limparHistorico(); setHistorico([]); }}
+          usoTokens={usoTokens}
+          aoLimparUsoTokens={limparUsoTokens}
         />
       )}
       <BarraAbas ativa={aba} aoMudar={setAba} />
       {visualizando && (
         <VisualizadorNorma
           norma={visualizando}
-          aoFechar={() => setVisualizando(null)}
-          aoEditar={() => { setEditarAoFechar(visualizando); setVisualizando(null); setAba('acervo'); }}
+          foco={focoVisualizando}
+          aoFechar={() => { setVisualizando(null); setFocoVisualizando(undefined); }}
+          aoEditar={() => { setEditarAoFechar(visualizando); setVisualizando(null); setFocoVisualizando(undefined); setAba('acervo'); }}
         />
       )}
     </div>
