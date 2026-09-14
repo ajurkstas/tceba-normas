@@ -80,3 +80,29 @@ export function normalizarNorma(bruto: Record<string, unknown>, gerarId: () => s
 export function gerarId(): string {
   return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
+
+// Rótulo do grupo na lista do acervo: plural para os tipos que reúnem vários atos.
+export const PLURAIS: Record<TipoAto, string> = {
+  'Constituição Federal': 'Constituição Federal',
+  'Constituição do Estado': 'Constituição do Estado',
+  'Lei Orgânica': 'Lei Orgânica',
+  'Regimento Interno': 'Regimento Interno',
+  'Resolução Normativa': 'Resoluções Normativas',
+  'Instrução Normativa': 'Instruções Normativas',
+  'Portaria Normativa': 'Portarias Normativas',
+  'Súmula': 'Súmulas',
+  'Legislação Correlata': 'Legislação Correlata',
+};
+
+// Título curto para o cartão: retira a fórmula introdutória da ementa
+// ("Aprova o", "Dispõe sobre a"), o aparte "no âmbito do Tribunal..." e a
+// cláusula "e dá outras providências".
+export function tituloNorma(n: Pick<Norma, 'ementa' | 'tipo'>): string {
+  let t = n.ementa.replace(/\s+/g, ' ').trim();
+  if (!t) return n.tipo;
+  t = t.replace(/,?\s*no âmbito d[oa] Tribunal de Contas do Estado da Bahia,?\s*/i, ' ');
+  t = t.replace(/,?\s*e dá outras providências\.?$/i, '');
+  t = t.replace(/^(Aprova|Dispõe sobre|Institui|Estabelece|Cria|Define|Disciplina|Fixa)\s+(?:[oa]s?\s+|as?\s+)?/i, '');
+  t = t.replace(/\s+/g, ' ').trim().replace(/[.;,]$/, '');
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : n.tipo;
+}

@@ -32,7 +32,7 @@ Este arquivo é o ponto de entrada. As regras detalhadas ficam em `_instrucoes/`
 - Heroicons (`@heroicons/react`)
 - Capacitor (Android), com `CapacitorHttp` desabilitado (fetch nativo do WebView)
 - `@anthropic-ai/sdk` para a consulta por IA; busca local sem IA em `src/dominio/buscaLocal.ts`
-- `react-markdown` + `@tailwindcss/typography` para o visualizador de norma
+- Leitor de norma próprio (`src/dominio/estruturaNorma.ts` + `src/componentes/VisualizadorNorma.tsx`), sem Markdown
 - pdf.js para importar texto de PDF no cadastro do acervo
 
 ## Comandos

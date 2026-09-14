@@ -6,7 +6,8 @@ import {
 import { PencilIcon } from '@heroicons/react/20/solid';
 import type { Norma, Situacao, TipoAto } from '../dominio/tipos';
 import { TIPOS_ATO } from '../dominio/tipos';
-import { codigoNorma, gerarId, normalizarTipo, ordenarNormas } from '../dominio/hierarquia';
+import { codigoNorma, gerarId, normalizarTipo, ordenarNormas, PLURAIS, tituloNorma } from '../dominio/hierarquia';
+import { extrairMetadados } from '../dominio/metadadosNorma';
 import { exportarJSON, importarJSON, mesclar } from '../servicos/acervo';
 import { AreaTexto, Aviso, Botao, Campo, Rotulo, Selecao } from '../componentes/basicos';
 import { Modal } from '../componentes/Modal';
@@ -80,8 +81,18 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarIn
     try {
       const { extrairTextoPdf } = await import('../servicos/pdf');
       const texto = await extrairTextoPdf(arquivo);
-      setEditando({ ...editando, texto });
-      setMensagem({ tom: 'atencao', texto: 'Texto extraído do PDF. Revise com atenção antes de salvar: a extração pode trazer cabeçalhos, rodapés ou numeração de página misturados ao texto.' });
+      const m = extrairMetadados(texto);
+      const nova = !editando.id;
+      setEditando({
+        ...editando,
+        texto,
+        tipo: nova && m.tipo ? m.tipo : editando.tipo,
+        numero: editando.numero || m.numero,
+        data: editando.data || m.data,
+        ementa: editando.ementa || m.ementa,
+        status: m.status === 'vigente_alteracoes' ? m.status : editando.status,
+      });
+      setMensagem({ tom: 'atencao', texto: 'Texto e dados extraídos do PDF. Revise número, data, ementa e situação antes de salvar; a extração pode trazer cabeçalhos ou rodapés misturados ao texto.' });
     } catch {
       setMensagem({ tom: 'erro', texto: 'Não foi possível extrair texto deste PDF. Pode ser um documento escaneado; nesse caso, cole o texto manualmente.' });
     } finally {
@@ -132,11 +143,12 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarIn
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        <Botao onClick={() => setEditando({ ...VAZIA })}><PlusIcon className="h-5 w-5" /> Nova norma</Botao>
-        <Botao variante="secundario" onClick={() => setLote('')}><ClipboardDocumentListIcon className="h-5 w-5" /> Colagem em lote</Botao>
-        <Botao variante="secundario" onClick={() => inputImport.current?.click()}><ArrowUpTrayIcon className="h-5 w-5" /> Importar JSON</Botao>
-        <Botao variante="secundario" onClick={exportar}><ArrowDownTrayIcon className="h-5 w-5" /> Exportar JSON</Botao>
+      <div className="flex items-center gap-2">
+        <Campo type="search" placeholder="Filtrar" value={filtro} onChange={(e) => setFiltro(e.target.value)} className="flex-1" />
+        <Botao onClick={() => setEditando({ ...VAZIA })} aria-label="Nova norma" title="Nova norma" className="px-3"><PlusIcon className="h-5 w-5" /></Botao>
+        <Botao variante="secundario" onClick={() => setLote('')} aria-label="Colagem em lote" title="Colagem em lote" className="px-3"><ClipboardDocumentListIcon className="h-5 w-5" /></Botao>
+        <Botao variante="secundario" onClick={() => inputImport.current?.click()} aria-label="Importar JSON" title="Importar JSON" className="px-3"><ArrowUpTrayIcon className="h-5 w-5" /></Botao>
+        <Botao variante="secundario" onClick={exportar} aria-label="Exportar JSON" title="Exportar JSON" className="px-3"><ArrowDownTrayIcon className="h-5 w-5" /></Botao>
         <input ref={inputImport} type="file" accept="application/json" className="hidden" onChange={importar} />
       </div>
 
@@ -147,7 +159,6 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarIn
       )}
       {mensagem && <Aviso tom={mensagem.tom}>{mensagem.texto}</Aviso>}
 
-      <Campo type="search" placeholder="Filtrar por tipo, número, ementa ou palavra do texto" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
       <p className="font-mono text-xs uppercase tracking-wide text-slate-500">{normas.length} norma{normas.length === 1 ? '' : 's'} no acervo</p>
 
       {lista.length === 0 && (
@@ -158,7 +169,7 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarIn
 
       {grupos.map(([tipo, itens]) => (
         <section key={tipo}>
-          <h3 className="mb-2 font-mono text-xs uppercase tracking-wide text-slate-500">{tipo}</h3>
+          <h3 className="mb-2 font-mono text-xs uppercase tracking-wide text-slate-500">{PLURAIS[tipo]}</h3>
           <div className="space-y-2">
             {itens.map((n) => (
               <article
@@ -173,19 +184,16 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarIn
                   <span className="font-mono text-xs text-amber-700 dark:text-amber-400">{codigoNorma(n)}</span>
                   <SeloSituacao status={n.status} />
                 </div>
-                <h4 className="mt-1 font-medium leading-snug">{n.ementa || n.tipo}</h4>
+                <h4 className="mt-1 font-medium leading-snug">{tituloNorma(n)}</h4>
                 <p className="mt-0.5 text-xs text-slate-500">{n.data || 'sem data'}{n.obs ? ` · ${n.obs}` : ''}</p>
-                <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{n.texto.replace(/\s+/g, ' ').slice(0, 200)}</p>
-                <div className="mt-2 flex items-center justify-between gap-1" onClick={(e) => e.stopPropagation()}>
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-500"><DocumentTextIcon className="h-4 w-4" /> Toque para ler na íntegra</span>
-                  <div className="flex gap-1">
-                  <Botao pequeno variante="fantasma" onClick={() => setEditando({ ...n })}><PencilSquareIcon className="h-5 w-5" /> Editar</Botao>
+                <div className="mt-1 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                  <Botao pequeno variante="fantasma" onClick={() => aoVisualizar(n)} aria-label="Ler na íntegra" title="Ler na íntegra"><DocumentTextIcon className="h-5 w-5" /></Botao>
+                  <Botao pequeno variante="fantasma" onClick={() => setEditando({ ...n })} aria-label="Editar" title="Editar"><PencilSquareIcon className="h-5 w-5" /></Botao>
                   {n.link && (
-                    <a href={n.link} target="_blank" rel="noopener" className="inline-flex min-h-9 items-center gap-2 rounded px-3 text-sm font-medium text-slate-700 hover:bg-stone-200 dark:text-stone-300 dark:hover:bg-slate-800">
-                      <ArrowTopRightOnSquareIcon className="h-5 w-5" /> Fonte
+                    <a href={n.link} target="_blank" rel="noopener" aria-label="Fonte oficial" title="Fonte oficial" className="inline-flex min-h-9 items-center rounded px-3 text-slate-700 hover:bg-stone-200 dark:text-stone-300 dark:hover:bg-slate-800">
+                      <ArrowTopRightOnSquareIcon className="h-5 w-5" />
                     </a>
                   )}
-                  </div>
                 </div>
               </article>
             ))}
@@ -209,6 +217,11 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarIn
       >
         {editando && (
           <div className="space-y-3">
+            <Botao variante="secundario" onClick={() => inputPdf.current?.click()} disabled={lendoPdf} className="w-full">
+              <DocumentArrowUpIcon className="h-5 w-5" /> {lendoPdf ? 'Lendo PDF' : 'Carregar PDF da norma'}
+            </Botao>
+            <input ref={inputPdf} type="file" accept="application/pdf" className="hidden" onChange={lerPdf} />
+            <p className="text-xs text-slate-500">Ao carregar o PDF, o texto é transcrito e número, data, ementa e situação são preenchidos automaticamente para revisão. O link fica para preenchimento manual.</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Rotulo htmlFor="f-tipo">Tipo de ato</Rotulo>
@@ -246,13 +259,7 @@ export function Acervo({ normas, rascunhoLocal, aoSalvar, aoVisualizar, editarIn
               <Campo id="f-link" type="url" placeholder="https://www.tce.ba.gov.br/..." value={editando.link} onChange={(e) => setEditando({ ...editando, link: e.target.value })} />
             </div>
             <div>
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <Rotulo htmlFor="f-texto">Texto integral (transcrição literal)</Rotulo>
-                <Botao pequeno variante="secundario" onClick={() => inputPdf.current?.click()} disabled={lendoPdf}>
-                  <DocumentArrowUpIcon className="h-5 w-5" /> {lendoPdf ? 'Lendo PDF' : 'Carregar PDF'}
-                </Botao>
-                <input ref={inputPdf} type="file" accept="application/pdf" className="hidden" onChange={lerPdf} />
-              </div>
+              <Rotulo htmlFor="f-texto">Texto integral (transcrição literal)</Rotulo>
               <AreaTexto id="f-texto" rows={12} className="font-serif" placeholder="Cole aqui o texto integral do ato, ou use Carregar PDF e revise o resultado" value={editando.texto} onChange={(e) => setEditando({ ...editando, texto: e.target.value })} />
             </div>
           </div>

@@ -219,8 +219,8 @@ export function Ajustes({ ajustes, aoMudarAjustes, temChave, aoMudarChave, versa
         <Titulo>Aparência</Titulo>
         <Rotulo htmlFor="tema">Tema</Rotulo>
         <Selecao id="tema" value={ajustes.tema} onChange={(e) => aoMudarAjustes({ ...ajustes, tema: e.target.value as Tema })}>
-          <option value="sistema">Seguir o sistema</option>
           <option value="claro">Claro</option>
+          <option value="sistema">Seguir o sistema</option>
           <option value="escuro">Escuro</option>
         </Selecao>
       </Cartao>

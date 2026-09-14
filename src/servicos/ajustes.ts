@@ -10,7 +10,7 @@ export async function carregarAjustes(): Promise<Ajustes> {
     if (!value) return AJUSTES_PADRAO;
     const bruto = JSON.parse(value) as Partial<Ajustes>;
     const modelo = MODELOS.some((m) => m.id === bruto.modelo) ? (bruto.modelo as ModeloId) : AJUSTES_PADRAO.modelo;
-    const tema: Tema = bruto.tema === 'claro' || bruto.tema === 'escuro' ? bruto.tema : 'sistema';
+    const tema: Tema = bruto.tema === 'sistema' || bruto.tema === 'escuro' ? bruto.tema : AJUSTES_PADRAO.tema;
     return { modelo, tema };
   } catch {
     return AJUSTES_PADRAO;
@@ -25,4 +25,5 @@ export function aplicarTema(tema: Tema): void {
   const escuroSistema = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
   const escuro = tema === 'escuro' || (tema === 'sistema' && escuroSistema);
   document.documentElement.classList.toggle('dark', escuro);
+  document.documentElement.style.colorScheme = escuro ? 'dark' : 'light';
 }

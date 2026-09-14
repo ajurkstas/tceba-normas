@@ -37,7 +37,7 @@ Semântica adicional (somente estes):
 | Bloco Opinião | borda `amber-300`, fundo `amber-50` |
 | Bloco Sem norma | borda `stone-300`, fundo `stone-50` |
 
-Modo escuro: classe `dark` no `html`, seguindo a preferência do sistema. Inversões: fundo `slate-950`, cartões `slate-900`, texto `stone-100`, bordas `slate-700`, destaque `amber-400`. Os selos mantêm o matiz com fundo `*-950/40`.
+Modo escuro: classe `dark` no `html`. O padrão do app é o tema claro; "Seguir o sistema" e "Escuro" são escolhas do usuário em Ajustes, persistidas em `Preferences`. Inversões: fundo `slate-950`, cartões `slate-900`, texto `stone-100`, bordas `slate-700`, destaque `amber-400`. Os selos mantêm o matiz com fundo `*-950/40`.
 
 ## Tipografia
 
@@ -90,17 +90,18 @@ Tamanho padrão: `h-6 w-6` na navegação, `h-5 w-5` em botões, `h-4 w-4` em se
 - Estado de carregamento com a frase "Percorrendo o acervo carregado" e, com streaming, a resposta aparece progressivamente.
 - Aviso quando o acervo foi pré-selecionado por volume.
 - Blocos de resposta conforme `02-prompt-de-sistema.md`.
-- Histórico das últimas 15 consultas, expansível, com botão para reexecutar a pergunta.
+- Histórico das últimas 15 consultas, expansível, com botão para reexecutar a pergunta. Toda busca entra no histórico, mesmo sem IA (`resposta` vazia); a mesma pergunta não se repete, e a resposta da IA, quando houver, é preservada.
 - Se não houver chave configurada: em vez de consultar, mostrar cartão com `KeyIcon` e botão que leva à aba Ajustes.
 - Links para o portal de legislação do TCE/BA e Resoluções Normativas, como hoje.
 - Rodapé com o aviso de sistema não oficial e autoria.
 
 ### Acervo
-- Lista de normas agrupadas por tipo, na ordem de hierarquia (`hierarquia.ts`), com número, data, ementa, selo de situação e link oficial.
-- Aviso "Rascunho local" enquanto houver edições não publicadas, com botão "Exportar JSON".
-- Ações: Nova norma, Colagem em lote, Importar JSON, Exportar JSON.
-- Toque em qualquer ponto do cartão abre o visualizador de tela inteira (`VisualizadorNorma`): cabeçalho fixo com código, ementa, selo e botão Editar; corpo em Markdown (`normaParaMarkdown.ts`) renderizado com `react-markdown` e `@tailwindcss/typography` (`prose`), fonte serifada, artigos como `###`, capítulos e títulos como `##`, incisos em bloco de citação. Fecha com X, Escape ou botão voltar do Android (`servicos/voltar.ts`).
-- Modal de norma com os campos atuais: tipo, número, data, situação, ementa, norma revogadora ou modificadora, link, texto integral, botão Carregar PDF.
+- Barra superior: campo de filtro e quatro botões só com ícone (`aria-label` e `title`): Nova norma, Colagem em lote, Importar JSON, Exportar JSON.
+- Lista de normas agrupadas por tipo, na ordem de hierarquia (`hierarquia.ts`), com o rótulo do grupo no plural quando cabem vários atos (`PLURAIS`: "Resoluções Normativas", "Instruções Normativas", "Súmulas").
+- Cartão enxuto: código (`LO-005/1991`) e selo de situação; título curto derivado da ementa (`tituloNorma`, que retira "Aprova o", "Dispõe sobre a", o aparte "no âmbito do Tribunal..." e "e dá outras providências"); linha com data e observação; e três ações só com ícone (ler na íntegra, editar, fonte oficial). Sem trecho do texto.
+- Aviso "Rascunho local" enquanto houver edições não publicadas.
+- Toque no cartão abre o leitor de tela inteira (`VisualizadorNorma`): barra superior apenas com X, código da norma e botão Editar. Corpo no padrão dos textos legais do Planalto (`dominio/estruturaNorma.ts`): fonte serifada, título centralizado, ementa recuada à direita, um parágrafo separado para cada "CONSIDERANDO", artigos e parágrafos como texto comum com recuo de primeira linha, incisos e alíneas recuados com barra lateral (sem aspas), e divisões (Título, Capítulo, Seção, Subseção) como `<details open>` retráteis, aninhadas e abertas ao abrir a norma. Fecha com X, Escape ou botão voltar do Android (`servicos/voltar.ts`).
+- Modal de norma: botão "Carregar PDF da norma" no topo; ao carregar, o texto é transcrito e `dominio/metadadosNorma.ts` preenche tipo (se norma nova), número no formato `000/0000`, data de aprovação, ementa e situação (vigente, ou vigente com alterações quando o texto traz marcas de consolidação), sempre para revisão; o link fica manual. Demais campos: tipo, número, data, situação, ementa, norma revogadora ou modificadora, link, texto integral.
 - Exclusão sempre com confirmação.
 
 ### Ajustes

@@ -66,4 +66,5 @@ export interface Ajustes {
   tema: Tema;
 }
 
-export const AJUSTES_PADRAO: Ajustes = { modelo: MODELO_PADRAO, tema: 'sistema' };
+// Tema claro por padrão; o usuário pode escolher seguir o sistema ou escuro em Ajustes.
+export const AJUSTES_PADRAO: Ajustes = { modelo: MODELO_PADRAO, tema: 'claro' };

@@ -58,6 +58,12 @@ export function Consulta({ normas, modelo, temChave, historico, aoRegistrar, irP
     return true;
   }, [normas, limpar]);
 
+  // Toda busca entra no histórico, mesmo sem IA; a resposta da IA complementa depois.
+  const buscarERegistrar = useCallback((texto: string) => {
+    if (!buscarLocal(texto)) return;
+    aoRegistrar({ pergunta: texto.trim(), resposta: '', modelo: '', quando: new Date().toISOString() });
+  }, [buscarLocal, aoRegistrar]);
+
   const consultarIA = useCallback(async (texto: string) => {
     const p = texto.trim();
     if (!p || carregando) return;
@@ -93,7 +99,7 @@ export function Consulta({ normas, modelo, temChave, historico, aoRegistrar, irP
   function reabrir(item: ItemHistorico) {
     setPergunta(item.pergunta);
     buscarLocal(item.pergunta);
-    setResposta(parseResposta(item.resposta));
+    if (item.resposta) setResposta(parseResposta(item.resposta));
     topo.current?.scrollIntoView({ behavior: 'smooth' });
   }
 
@@ -120,7 +126,7 @@ export function Consulta({ normas, modelo, temChave, historico, aoRegistrar, irP
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <span className="text-xs text-slate-500">{normas.length} norma{normas.length === 1 ? '' : 's'} no acervo</span>
           <div className="flex flex-wrap gap-2">
-            <Botao variante="secundario" onClick={() => buscarLocal(pergunta)} disabled={!podePerguntar}>
+            <Botao variante="secundario" onClick={() => buscarERegistrar(pergunta)} disabled={!podePerguntar}>
               <MagnifyingGlassIcon className="h-5 w-5" /> Buscar no acervo
             </Botao>
             {carregando ? (
@@ -194,7 +200,7 @@ export function Consulta({ normas, modelo, temChave, historico, aoRegistrar, irP
             <div key={i} className="flex items-start justify-between gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2 text-sm">{h.pergunta}</p>
-                <p className="mt-0.5 font-mono text-xs text-slate-500">{new Date(h.quando).toLocaleString('pt-BR')}</p>
+                <p className="mt-0.5 font-mono text-xs text-slate-500">{new Date(h.quando).toLocaleString('pt-BR')}{h.resposta ? ' · com resposta da IA' : ' · busca no acervo'}</p>
               </div>
               <div className="flex shrink-0 gap-1">
                 <Botao pequeno variante="fantasma" onClick={() => reabrir(h)}>Ver</Botao>

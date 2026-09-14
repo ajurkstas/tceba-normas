@@ -1,15 +1,57 @@
 import { useEffect, useMemo } from 'react';
-import Markdown from 'react-markdown';
-import { ArrowTopRightOnSquareIcon, PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowTopRightOnSquareIcon, ChevronDownIcon, PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import type { Norma } from '../dominio/tipos';
-import { codigoNorma } from '../dominio/hierarquia';
-import { normaParaMarkdown } from '../dominio/normaParaMarkdown';
+import { codigoNorma, rotuloSituacao } from '../dominio/hierarquia';
+import { estruturarTexto, type Bloco, type BlocoDivisao } from '../dominio/estruturaNorma';
 import { registrarVoltar } from '../servicos/voltar';
-import { SeloSituacao } from './Selo';
 import { Botao } from './basicos';
 
+// Leitura no padrão dos textos legais do Planalto: fonte serifada, texto corrido,
+// artigos em parágrafos comuns, incisos recuados com barra lateral, ementa recuada
+// à direita e divisões (título, capítulo, seção) como listas retráteis, abertas.
+const PARAGRAFO = 'my-3 indent-8 leading-relaxed hyphens-auto sm:text-justify';
+
+function Divisao({ bloco }: { bloco: BlocoDivisao }) {
+  return (
+    <details open className="group my-4">
+      <summary className="flex cursor-pointer list-none flex-col items-center rounded py-2 text-center font-sans hover:bg-stone-200/60 dark:hover:bg-slate-800 [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-1 text-sm font-semibold uppercase tracking-wide">
+          <ChevronDownIcon className="h-4 w-4 text-slate-500 transition group-open:rotate-0 -rotate-90" />
+          {bloco.titulo}
+        </span>
+        {bloco.subtitulo && <span className="text-sm font-semibold uppercase tracking-wide">{bloco.subtitulo}</span>}
+      </summary>
+      <Blocos blocos={bloco.filhos} />
+    </details>
+  );
+}
+
+function Blocos({ blocos }: { blocos: Bloco[] }) {
+  return (
+    <>
+      {blocos.map((b, i) => {
+        if (b.tipo === 'divisao') return <Divisao key={i} bloco={b} />;
+        switch (b.tipo) {
+          case 'cabecalho':
+            return <p key={i} className="my-1 text-center font-sans text-sm font-medium">{b.texto}</p>;
+          case 'ementa':
+            return <p key={i} className="my-6 ml-[30%] leading-relaxed sm:ml-[40%]">{b.texto}</p>;
+          case 'considerando':
+            return <p key={i} className={`${PARAGRAFO} mb-5`}>{b.texto}</p>;
+          case 'rotulo':
+            return <p key={i} className="my-5 text-center font-sans text-sm font-semibold uppercase tracking-wide">{b.texto}</p>;
+          case 'inciso':
+            return <p key={i} className="my-1.5 ml-8 border-l-2 border-amber-700/60 pl-3 leading-relaxed hyphens-auto sm:text-justify dark:border-amber-400/60">{b.texto}</p>;
+          default:
+            return <p key={i} className={PARAGRAFO}>{b.texto}</p>;
+        }
+      })}
+    </>
+  );
+}
+
 export function VisualizadorNorma({ norma, aoFechar, aoEditar }: { norma: Norma; aoFechar: () => void; aoEditar?: () => void }) {
-  const md = useMemo(() => normaParaMarkdown(norma), [norma]);
+  const blocos = useMemo(() => estruturarTexto(norma.texto, norma.ementa), [norma]);
 
   useEffect(() => {
     const remover = registrarVoltar(aoFechar);
@@ -25,28 +67,23 @@ export function VisualizadorNorma({ norma, aoFechar, aoEditar }: { norma: Norma;
         <button type="button" aria-label="Fechar" onClick={aoFechar} className="rounded p-2 text-slate-600 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-slate-800">
           <XMarkIcon className="h-6 w-6" />
         </button>
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-mono text-xs uppercase tracking-wide text-amber-700 dark:text-amber-400">{codigoNorma(norma)}</div>
-          <div className="truncate text-sm font-medium">{norma.ementa || norma.tipo}</div>
-        </div>
-        <SeloSituacao status={norma.status} />
+        <div className="min-w-0 flex-1 truncate font-mono text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">{codigoNorma(norma)}</div>
         {aoEditar && (
-          <Botao pequeno variante="fantasma" onClick={aoEditar} aria-label="Editar norma"><PencilSquareIcon className="h-5 w-5" /></Botao>
+          <Botao pequeno variante="fantasma" onClick={aoEditar} aria-label="Editar norma" title="Editar norma"><PencilSquareIcon className="h-5 w-5" /></Botao>
         )}
       </header>
       <div className="flex-1 overflow-y-auto">
-        <article className="prose prose-slate mx-auto max-w-3xl px-5 py-6 font-serif dark:prose-invert prose-headings:font-sans prose-h1:text-2xl prose-h2:mt-8 prose-h2:text-lg prose-h2:uppercase prose-h2:tracking-wide prose-h3:mt-6 prose-h3:text-base prose-h3:font-semibold prose-h3:text-amber-800 dark:prose-h3:text-amber-400 prose-blockquote:border-l-amber-700 prose-blockquote:font-normal prose-blockquote:not-italic prose-blockquote:text-slate-800 dark:prose-blockquote:text-stone-200 prose-a:text-amber-700 dark:prose-a:text-amber-400 prose-p:leading-relaxed prose-li:my-0">
-          <Markdown
-            components={{
-              a: ({ href, children }) => (
-                <a href={href} target="_blank" rel="noopener" className="inline-flex items-center gap-1 break-all">
-                  {children} <ArrowTopRightOnSquareIcon className="inline h-3.5 w-3.5" />
-                </a>
-              ),
-            }}
-          >
-            {md}
-          </Markdown>
+        <article className="mx-auto max-w-3xl px-5 py-6 font-serif text-base text-slate-900 dark:text-stone-100">
+          <h1 className="text-center font-sans text-lg font-semibold uppercase tracking-wide">{norma.tipo}{norma.numero ? ` nº ${norma.numero}` : ''}</h1>
+          <p className="mb-6 mt-1 text-center font-sans text-xs text-slate-500 dark:text-slate-400">
+            {norma.data && <>Aprovada em {norma.data}. </>}
+            Situação: {rotuloSituacao(norma.status)}.
+            {norma.obs && <> {norma.obs}</>}
+            {norma.link && (
+              <> <a href={norma.link} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-amber-700 underline-offset-2 hover:underline dark:text-amber-400">Fonte oficial <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" /></a></>
+            )}
+          </p>
+          <Blocos blocos={blocos} />
         </article>
         <div className="h-[env(safe-area-inset-bottom)]" />
       </div>

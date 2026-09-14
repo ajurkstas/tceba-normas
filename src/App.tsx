@@ -72,10 +72,15 @@ export function App() {
     await salvarAcervo(novas);
   }, []);
 
+  // Registra a consulta no topo do histórico. A mesma pergunta não se repete:
+  // a entrada anterior sai, preservando a resposta da IA se a nova não tiver.
   const registrarHistorico = useCallback((item: ItemHistorico) => {
     setHistorico((h) => {
-      const novo = [item, ...h].slice(0, 30);
-      salvarHistorico(novo);
+      const chave = item.pergunta.trim().toLowerCase();
+      const anterior = h.find((x) => x.pergunta.trim().toLowerCase() === chave);
+      const registro = item.resposta || !anterior ? item : { ...item, resposta: anterior.resposta, modelo: anterior.modelo };
+      const novo = [registro, ...h.filter((x) => x !== anterior)].slice(0, 30);
+      void salvarHistorico(novo);
       return novo;
     });
   }, []);
