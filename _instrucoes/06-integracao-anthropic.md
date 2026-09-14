@@ -1,0 +1,84 @@
+# 06. Integração com a API da Anthropic
+
+## Cliente
+
+Usar `@anthropic-ai/sdk` (TypeScript). Nunca `fetch` manual para `api.anthropic.com`. O cliente é criado por consulta, com a chave lida de `chaveApi.ts`, e descartado ao final:
+
+```ts
+import Anthropic from "@anthropic-ai/sdk";
+import { Capacitor } from "@capacitor/core";
+
+function criarCliente(chave: string) {
+  return new Anthropic({
+    apiKey: chave,
+    // Necessário porque o código roda em WebView/navegador, não em servidor.
+    // No Android o tráfego passa pelo CapacitorHttp (camada nativa), sem CORS.
+    dangerouslyAllowBrowser: true,
+    maxRetries: 2,
+    timeout: 120_000, // milissegundos no SDK TypeScript
+  });
+}
+```
+
+`capacitor.config.ts` habilita `plugins: { CapacitorHttp: { enabled: true } }`, o que faz o `fetch` global ser roteado pela camada nativa no Android. Verificar, ao implementar, que respostas em streaming (SSE) funcionam com o `CapacitorHttp` na versão em uso; se não funcionarem, desabilitar o streaming apenas no Android e usar `messages.create` com `max_tokens` adequado, mantendo a interface de `consultar` igual.
+
+## Modelo
+
+- Padrão: `claude-opus-5`. É a melhor escolha para a tarefa de percorrer o acervo inteiro e transcrever com fidelidade.
+- Opções em Ajustes: `claude-opus-5` (padrão), `claude-sonnet-5` (mais rápido e barato), `claude-haiku-4-5` (mais barato; usar só para testes). Somente estes três identificadores, sem sufixo de data.
+- Não usar identificadores antigos (`claude-sonnet-4-6` do `index.html` atual é substituído).
+
+## Parâmetros da chamada
+
+```ts
+const stream = cliente.messages.stream({
+  model: modelo,
+  max_tokens: 8000,
+  thinking: { type: "adaptive" },          // Opus 5 já liga por padrão; explícito para Sonnet 5
+  output_config: { effort: "high" },       // fidelidade acima de velocidade
+  system: [
+    { type: "text", text: PROMPT_SISTEMA },
+    { type: "text", text: corpoAcervo, cache_control: { type: "ephemeral" } },
+  ],
+  messages: [{ role: "user", content: `PERGUNTA:\n${pergunta}` }],
+});
+```
+
+- Streaming sempre (`messages.stream`), porque a entrada é grande. Renderizar o texto conforme chega (`stream.on("text", ...)`) e fechar com `await stream.finalMessage()`.
+- `haiku-4-5` não aceita `thinking: adaptive` nem `output_config.effort`; para ele, omitir os dois campos.
+- Não usar prefill de mensagem `assistant`: rejeitado nos modelos atuais.
+- Não usar `temperature`: removido nos modelos atuais.
+
+## Cache do acervo
+
+O acervo serializado não muda entre consultas e é grande (o Regimento Interno sozinho passa de 170 mil caracteres). Ele vai no `system` como segundo bloco com `cache_control`, depois de `PROMPT_SISTEMA`, e antes da pergunta. Isso faz as consultas seguintes ao mesmo acervo pagarem só a leitura do cache. Regras para o cache funcionar:
+
+- A serialização é determinística: normas ordenadas por hierarquia e depois por número; sem data/hora, sem contadores e sem identificadores aleatórios no texto.
+- O aviso de pré-seleção por volume é acrescentado só quando ocorre; quando ocorre, o conjunto de normas varia com a pergunta e o cache naturalmente não se aproveita.
+- Registrar em console de desenvolvimento `usage.cache_read_input_tokens` e `usage.cache_creation_input_tokens` da mensagem final para conferir.
+
+## Mapeamento de erros para o usuário
+
+Usar as classes tipadas do SDK, da mais específica para a mais geral. Nenhuma mensagem exibe o corpo do erro nem a chave.
+
+| Erro do SDK | Mensagem |
+|---|---|
+| `AuthenticationError` (401) | A chave foi recusada pela Anthropic. Confira em Ajustes. |
+| `PermissionDeniedError` (403) | Esta chave não tem permissão para usar o modelo escolhido. |
+| `RateLimitError` (429) | Limite de uso atingido. Aguarde alguns instantes e tente de novo. |
+| `BadRequestError` (400) | A consulta não pôde ser processada. Se o acervo for muito grande, refine a pergunta. |
+| `InternalServerError` (5xx) | A Anthropic está indisponível no momento. Tente novamente em instantes. |
+| `APIConnectionError` | Sem conexão. Verifique a internet e tente novamente. |
+| outro | Não foi possível concluir a consulta agora. |
+
+Se `stop_reason` for `refusal`, exibir "O modelo recusou processar esta consulta." e registrar `stop_details.category` só em console de desenvolvimento. Se `stop_reason` for `max_tokens`, exibir o que veio e o aviso "A resposta foi interrompida por tamanho; refine a pergunta."
+
+## Teste de chave (Ajustes)
+
+`testarChave(chave)` cria o cliente e chama `messages.create` com `model: "claude-haiku-4-5"`, `max_tokens: 16`, mensagem "ok", sem `system`. Retorna sucesso ou o erro mapeado pela tabela acima. Não usa streaming e não passa pelo acervo.
+
+## O que não fazer
+
+- Não embutir a chave no worker nem o worker no app. `worker/` é legado da versão web e pode ser removido quando a versão React estiver publicada.
+- Não enviar o acervo em `messages`; ele fica em `system` para o cache.
+- Não truncar o texto das normas silenciosamente. Se o acervo estourar o limite (`07-acervo-e-dados.md`), a pré-seleção é anunciada ao usuário.
